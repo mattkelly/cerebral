@@ -1,0 +1,6 @@
+apiVersion: cerebral.containership.io/v1alpha1
+kind: MetricsBackend
+metadata:
+  name: prometheus
+spec:
+  address: prometheus.metrics.svc.cluster.local:9090
