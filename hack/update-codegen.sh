@@ -9,4 +9,4 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-ge
 
 ${CODEGEN_PKG}/generate-groups.sh all \
   github.com/containership/cerebral/pkg/client github.com/containership/cerebral/pkg/apis \
-  "metricsbackend.cerebral.containership.io:v1alpha1"
+  "cerebral.containership.io:v1alpha1"

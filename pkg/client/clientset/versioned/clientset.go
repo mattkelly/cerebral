@@ -19,7 +19,7 @@ limitations under the License.
 package versioned
 
 import (
-	metricsbackendv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/metricsbackend.cerebral.containership.io/v1alpha1"
+	metricsbackendv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/cerebral.containership.io/v1alpha1"
 	glog "github.com/golang/glog"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"

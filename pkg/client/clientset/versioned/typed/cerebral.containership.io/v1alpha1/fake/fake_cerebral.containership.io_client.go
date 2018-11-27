@@ -19,7 +19,7 @@ limitations under the License.
 package fake
 
 import (
-	v1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/metricsbackend.cerebral.containership.io/v1alpha1"
+	v1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/cerebral.containership.io/v1alpha1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

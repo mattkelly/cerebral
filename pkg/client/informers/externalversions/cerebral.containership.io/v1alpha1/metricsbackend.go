@@ -21,10 +21,10 @@ package v1alpha1
 import (
 	time "time"
 
-	metricsbackendcerebralcontainershipiov1alpha1 "github.com/containership/cerebral/pkg/apis/metricsbackend.cerebral.containership.io/v1alpha1"
+	cerebralcontainershipiov1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
 	versioned "github.com/containership/cerebral/pkg/client/clientset/versioned"
 	internalinterfaces "github.com/containership/cerebral/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/containership/cerebral/pkg/client/listers/metricsbackend.cerebral.containership.io/v1alpha1"
+	v1alpha1 "github.com/containership/cerebral/pkg/client/listers/cerebral.containership.io/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -69,7 +69,7 @@ func NewFilteredMetricsBackendInformer(client versioned.Interface, resyncPeriod 
 				return client.MetricsBackendV1alpha1().MetricsBackends().Watch(options)
 			},
 		},
-		&metricsbackendcerebralcontainershipiov1alpha1.MetricsBackend{},
+		&cerebralcontainershipiov1alpha1.MetricsBackend{},
 		resyncPeriod,
 		indexers,
 	)
@@ -80,7 +80,7 @@ func (f *metricsBackendInformer) defaultInformer(client versioned.Interface, res
 }
 
 func (f *metricsBackendInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&metricsbackendcerebralcontainershipiov1alpha1.MetricsBackend{}, f.defaultInformer)
+	return f.factory.InformerFor(&cerebralcontainershipiov1alpha1.MetricsBackend{}, f.defaultInformer)
 }
 
 func (f *metricsBackendInformer) Lister() v1alpha1.MetricsBackendLister {

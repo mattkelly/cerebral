@@ -24,8 +24,8 @@ import (
 	time "time"
 
 	versioned "github.com/containership/cerebral/pkg/client/clientset/versioned"
+	cerebralcontainershipio "github.com/containership/cerebral/pkg/client/informers/externalversions/cerebral.containership.io"
 	internalinterfaces "github.com/containership/cerebral/pkg/client/informers/externalversions/internalinterfaces"
-	metricsbackendcerebralcontainershipio "github.com/containership/cerebral/pkg/client/informers/externalversions/metricsbackend.cerebral.containership.io"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -123,9 +123,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	MetricsBackend() metricsbackendcerebralcontainershipio.Interface
+	MetricsBackend() cerebralcontainershipio.Interface
 }
 
-func (f *sharedInformerFactory) MetricsBackend() metricsbackendcerebralcontainershipio.Interface {
-	return metricsbackendcerebralcontainershipio.New(f, f.namespace, f.tweakListOptions)
+func (f *sharedInformerFactory) MetricsBackend() cerebralcontainershipio.Interface {
+	return cerebralcontainershipio.New(f, f.namespace, f.tweakListOptions)
 }

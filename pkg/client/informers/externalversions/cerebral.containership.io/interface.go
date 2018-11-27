@@ -19,8 +19,8 @@ limitations under the License.
 package cerebral
 
 import (
+	v1alpha1 "github.com/containership/cerebral/pkg/client/informers/externalversions/cerebral.containership.io/v1alpha1"
 	internalinterfaces "github.com/containership/cerebral/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/containership/cerebral/pkg/client/informers/externalversions/metricsbackend.cerebral.containership.io/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

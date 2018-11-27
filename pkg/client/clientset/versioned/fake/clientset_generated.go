@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/containership/cerebral/pkg/client/clientset/versioned"
-	metricsbackendv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/metricsbackend.cerebral.containership.io/v1alpha1"
-	fakemetricsbackendv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/metricsbackend.cerebral.containership.io/v1alpha1/fake"
+	metricsbackendv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/cerebral.containership.io/v1alpha1"
+	fakemetricsbackendv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/cerebral.containership.io/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
