@@ -1,6 +1,7 @@
 # git
 .git
 .gitignore
+.github
 
 # go vendoring
 /vendor
