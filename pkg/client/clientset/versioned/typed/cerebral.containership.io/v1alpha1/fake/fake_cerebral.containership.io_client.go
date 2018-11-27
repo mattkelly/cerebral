@@ -28,6 +28,10 @@ type FakeMetricsBackendV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeMetricsBackendV1alpha1) AutoscalingPolicies() v1alpha1.AutoscalingPolicyInterface {
+	return &FakeAutoscalingPolicies{c}
+}
+
 func (c *FakeMetricsBackendV1alpha1) MetricsBackends() v1alpha1.MetricsBackendInterface {
 	return &FakeMetricsBackends{c}
 }

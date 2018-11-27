@@ -27,12 +27,17 @@ import (
 
 type MetricsBackendV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	AutoscalingPoliciesGetter
 	MetricsBackendsGetter
 }
 
 // MetricsBackendV1alpha1Client is used to interact with features provided by the cerebral.containership.io group.
 type MetricsBackendV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *MetricsBackendV1alpha1Client) AutoscalingPolicies() AutoscalingPolicyInterface {
+	return newAutoscalingPolicies(c)
 }
 
 func (c *MetricsBackendV1alpha1Client) MetricsBackends() MetricsBackendInterface {
