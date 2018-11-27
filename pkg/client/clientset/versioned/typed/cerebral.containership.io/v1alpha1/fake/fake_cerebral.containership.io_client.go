@@ -32,6 +32,10 @@ func (c *FakeCerebralV1alpha1) AutoScalingGroups() v1alpha1.AutoScalingGroupInte
 	return &FakeAutoScalingGroups{c}
 }
 
+func (c *FakeCerebralV1alpha1) AutoscalingPolicies() v1alpha1.AutoscalingPolicyInterface {
+	return &FakeAutoscalingPolicies{c}
+}
+
 func (c *FakeCerebralV1alpha1) MetricsBackends() v1alpha1.MetricsBackendInterface {
 	return &FakeMetricsBackends{c}
 }

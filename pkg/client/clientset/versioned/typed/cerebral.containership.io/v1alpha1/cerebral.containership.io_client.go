@@ -28,6 +28,7 @@ import (
 type CerebralV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	AutoScalingGroupsGetter
+	AutoscalingPoliciesGetter
 	MetricsBackendsGetter
 }
 
@@ -38,6 +39,10 @@ type CerebralV1alpha1Client struct {
 
 func (c *CerebralV1alpha1Client) AutoScalingGroups() AutoScalingGroupInterface {
 	return newAutoScalingGroups(c)
+}
+
+func (c *CerebralV1alpha1Client) AutoscalingPolicies() AutoscalingPolicyInterface {
+	return newAutoscalingPolicies(c)
 }
 
 func (c *CerebralV1alpha1Client) MetricsBackends() MetricsBackendInterface {

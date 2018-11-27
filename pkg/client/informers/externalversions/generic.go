@@ -55,6 +55,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=cerebral.containership.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("autoscalinggroups"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cerebral().V1alpha1().AutoScalingGroups().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("autoscalingpolicies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Cerebral().V1alpha1().AutoscalingPolicies().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("metricsbackends"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Cerebral().V1alpha1().MetricsBackends().Informer()}, nil
 

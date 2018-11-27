@@ -41,9 +41,6 @@ spec:
             minNodes:
               type: integer
               minimum: 0
-        status:
-          lastUpdatedAt:
-            type: date
 
   subresources:
     status: {}

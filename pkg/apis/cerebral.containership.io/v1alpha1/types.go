@@ -70,3 +70,48 @@ type AutoScalingGroupList struct {
 
 	Items []AutoScalingGroup `json:"items"`
 }
+
+// +genclient
+// +genclient:noStatus
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AutoscalingPolicy describes a source for metrics for autoscaling
+type AutoscalingPolicy struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec AutoscalingPolicySpec `json:"spec"`
+}
+
+// AutoscalingPolicySpec is the spec for a metrics backend
+type AutoscalingPolicySpec struct {
+	MetricsBackend      string              `json:"metricsBackend"`
+	Metric              string              `json:"metric"`
+	MetricConfiguration map[string]string   `json:"metricConfiguration"`
+	Policy              PolicyConfiguration `json:"policy"`
+}
+
+type PolicyConfiguration struct {
+	ScaleUp   ScaleConfiguration `json:"scaleUp"`
+	ScaleDown ScaleConfiguration `json:"scaleDown"`
+}
+
+type ScaleConfiguration struct {
+	Threshold float32 `json:"threshold"`
+	// TODO real types for below
+	ComparisonOperator string `json:"comparisonOperator"`
+	AdjustmentType     string `json:"adjustmentType"`
+	AdjustmentValue    string `json:"adjustmentValue"`
+	Heuristic          string `json:"heuristic,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AutoscalingPolicyList is a list of AutoscalingPolicys.
+type AutoscalingPolicyList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []AutoscalingPolicy `json:"items"`
+}
