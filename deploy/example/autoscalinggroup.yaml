@@ -1,0 +1,14 @@
+apiVersion: cerebral.containership.io/v1alpha1
+kind: AutoscalingGroup
+metadata:
+  name: tester
+spec:
+  nodeSelector:
+    "kubernetes.io/hostname": "docker-for-desktop"
+  policies:
+  - somepolicyname
+  engine: containership
+  suspended: false
+  cooldownPeriod: 600
+  maxNodes: 5
+  minNodes: 1
