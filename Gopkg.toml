@@ -12,8 +12,39 @@ required = [
   "k8s.io/gengo/args",
 ]
 
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "v1.2.2"
+
+[[constraint]]
+  name = "github.com/pkg/errors"
+  version = "0.8.0"
+
+[[constraint]]
+  name = "k8s.io/api"
+  version = "kubernetes-1.11.2"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "kubernetes-1.11.2"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  version = "kubernetes-1.11.2"
+
+[[constraint]]
+  name = "github.com/containership/cluster-manager"
+  version = "v4.0.1"
+
+[[constraint]]
+  name = "sigs.k8s.io/controller-runtime"
+  version = "v0.1.7"
+
+[[override]]
+  branch = "master"
+  name = "github.com/golang/groupcache"
+  
 [prune]
   go-tests = true
   # Note that we can't do this due to the code generator packages required; see above
   #unused-packages = true
-
