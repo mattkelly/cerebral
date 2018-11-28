@@ -31,3 +31,43 @@ type MetricsBackendList struct {
 
 	Items []MetricsBackend `json:"items"`
 }
+
+// +genclient
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AutoscalingGroup describes a node group for autoscaling
+type AutoscalingGroup struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   AutoscalingGroupSpec   `json:"spec"`
+	Status AutoscalingGroupStatus `json:"status"`
+}
+
+// AutoscalingGroupSpec is the spec for a autoscaling group
+type AutoscalingGroupSpec struct {
+	NodeSelector   map[string]string `json:"nodeSelector"`
+	Policies       []string          `json:"policies"`
+	Engine         string            `json:"engine"`
+	CooldownPeriod int               `json:"cooldownPeriod"`
+	Suspend        bool              `json:"suspend"`
+	MinNodes       int               `json:"minNodes"`
+	MaxNodes       int               `json:"maxNodes"`
+}
+
+// AutoscalingGroupStatus is the status for a autoscaling group
+type AutoscalingGroupStatus struct {
+	// LastUpdatedAt is a Unix time, time.Time is not a valid type for code gen
+	LastUpdatedAt int64 `json:"lastUpdatedAt"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AutoscalingGroupList is a list of autoscaling groups.
+type AutoscalingGroupList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []AutoscalingGroup `json:"items"`
+}

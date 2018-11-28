@@ -24,17 +24,21 @@ import (
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeMetricsBackendV1alpha1 struct {
+type FakeCerebralV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeMetricsBackendV1alpha1) MetricsBackends() v1alpha1.MetricsBackendInterface {
+func (c *FakeCerebralV1alpha1) AutoscalingGroups() v1alpha1.AutoscalingGroupInterface {
+	return &FakeAutoscalingGroups{c}
+}
+
+func (c *FakeCerebralV1alpha1) MetricsBackends() v1alpha1.MetricsBackendInterface {
 	return &FakeMetricsBackends{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeMetricsBackendV1alpha1) RESTClient() rest.Interface {
+func (c *FakeCerebralV1alpha1) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }

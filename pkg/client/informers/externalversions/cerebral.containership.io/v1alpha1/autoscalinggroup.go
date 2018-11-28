@@ -31,58 +31,58 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// MetricsBackendInformer provides access to a shared informer and lister for
-// MetricsBackends.
-type MetricsBackendInformer interface {
+// AutoscalingGroupInformer provides access to a shared informer and lister for
+// AutoscalingGroups.
+type AutoscalingGroupInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.MetricsBackendLister
+	Lister() v1alpha1.AutoscalingGroupLister
 }
 
-type metricsBackendInformer struct {
+type autoscalingGroupInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
-// NewMetricsBackendInformer constructs a new informer for MetricsBackend type.
+// NewAutoscalingGroupInformer constructs a new informer for AutoscalingGroup type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewMetricsBackendInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredMetricsBackendInformer(client, resyncPeriod, indexers, nil)
+func NewAutoscalingGroupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredAutoscalingGroupInformer(client, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredMetricsBackendInformer constructs a new informer for MetricsBackend type.
+// NewFilteredAutoscalingGroupInformer constructs a new informer for AutoscalingGroup type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredMetricsBackendInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredAutoscalingGroupInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.CerebralV1alpha1().MetricsBackends().List(options)
+				return client.CerebralV1alpha1().AutoscalingGroups().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.CerebralV1alpha1().MetricsBackends().Watch(options)
+				return client.CerebralV1alpha1().AutoscalingGroups().Watch(options)
 			},
 		},
-		&cerebralcontainershipiov1alpha1.MetricsBackend{},
+		&cerebralcontainershipiov1alpha1.AutoscalingGroup{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *metricsBackendInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredMetricsBackendInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *autoscalingGroupInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredAutoscalingGroupInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *metricsBackendInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&cerebralcontainershipiov1alpha1.MetricsBackend{}, f.defaultInformer)
+func (f *autoscalingGroupInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&cerebralcontainershipiov1alpha1.AutoscalingGroup{}, f.defaultInformer)
 }
 
-func (f *metricsBackendInformer) Lister() v1alpha1.MetricsBackendLister {
-	return v1alpha1.NewMetricsBackendLister(f.Informer().GetIndexer())
+func (f *autoscalingGroupInformer) Lister() v1alpha1.AutoscalingGroupLister {
+	return v1alpha1.NewAutoscalingGroupLister(f.Informer().GetIndexer())
 }

@@ -123,9 +123,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	MetricsBackend() cerebralcontainershipio.Interface
+	Cerebral() cerebralcontainershipio.Interface
 }
 
-func (f *sharedInformerFactory) MetricsBackend() cerebralcontainershipio.Interface {
+func (f *sharedInformerFactory) Cerebral() cerebralcontainershipio.Interface {
 	return cerebralcontainershipio.New(f, f.namespace, f.tweakListOptions)
 }

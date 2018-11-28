@@ -52,7 +52,7 @@ type metricsBackends struct {
 }
 
 // newMetricsBackends returns a MetricsBackends
-func newMetricsBackends(c *MetricsBackendV1alpha1Client) *metricsBackends {
+func newMetricsBackends(c *CerebralV1alpha1Client) *metricsBackends {
 	return &metricsBackends{
 		client: c.RESTClient(),
 	}
