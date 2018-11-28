@@ -287,6 +287,11 @@ func (agc *AutoscalingGroupController) syncHandler(key string) error {
 		return err
 	}
 
+	if autoScalingGroup.Spec.Suspend {
+		log.Infof("Autoscaling Group '%s' was queued but it is currently suspended.", autoScalingGroup.Name)
+		return nil
+	}
+
 	engineName := autoScalingGroup.Spec.Engine
 	if !agc.autoscalingengine.Exists(engineName) {
 		log.Errorf("The Autoscaling Engine Specified for the Autoscaling Group '%s' is not registered.", autoScalingGroup.Name)
