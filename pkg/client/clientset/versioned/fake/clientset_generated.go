@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/containership/cerebral/pkg/client/clientset/versioned"
-	metricsbackendv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/cerebral.containership.io/v1alpha1"
-	fakemetricsbackendv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/cerebral.containership.io/v1alpha1/fake"
+	cerebralv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/cerebral.containership.io/v1alpha1"
+	fakecerebralv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/cerebral.containership.io/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -70,12 +70,12 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-// MetricsBackendV1alpha1 retrieves the MetricsBackendV1alpha1Client
-func (c *Clientset) MetricsBackendV1alpha1() metricsbackendv1alpha1.MetricsBackendV1alpha1Interface {
-	return &fakemetricsbackendv1alpha1.FakeMetricsBackendV1alpha1{Fake: &c.Fake}
+// CerebralV1alpha1 retrieves the CerebralV1alpha1Client
+func (c *Clientset) CerebralV1alpha1() cerebralv1alpha1.CerebralV1alpha1Interface {
+	return &fakecerebralv1alpha1.FakeCerebralV1alpha1{Fake: &c.Fake}
 }
 
-// MetricsBackend retrieves the MetricsBackendV1alpha1Client
-func (c *Clientset) MetricsBackend() metricsbackendv1alpha1.MetricsBackendV1alpha1Interface {
-	return &fakemetricsbackendv1alpha1.FakeMetricsBackendV1alpha1{Fake: &c.Fake}
+// Cerebral retrieves the CerebralV1alpha1Client
+func (c *Clientset) Cerebral() cerebralv1alpha1.CerebralV1alpha1Interface {
+	return &fakecerebralv1alpha1.FakeCerebralV1alpha1{Fake: &c.Fake}
 }

@@ -25,22 +25,27 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-type MetricsBackendV1alpha1Interface interface {
+type CerebralV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	AutoScalingGroupsGetter
 	MetricsBackendsGetter
 }
 
-// MetricsBackendV1alpha1Client is used to interact with features provided by the cerebral.containership.io group.
-type MetricsBackendV1alpha1Client struct {
+// CerebralV1alpha1Client is used to interact with features provided by the cerebral.containership.io group.
+type CerebralV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *MetricsBackendV1alpha1Client) MetricsBackends() MetricsBackendInterface {
+func (c *CerebralV1alpha1Client) AutoScalingGroups() AutoScalingGroupInterface {
+	return newAutoScalingGroups(c)
+}
+
+func (c *CerebralV1alpha1Client) MetricsBackends() MetricsBackendInterface {
 	return newMetricsBackends(c)
 }
 
-// NewForConfig creates a new MetricsBackendV1alpha1Client for the given config.
-func NewForConfig(c *rest.Config) (*MetricsBackendV1alpha1Client, error) {
+// NewForConfig creates a new CerebralV1alpha1Client for the given config.
+func NewForConfig(c *rest.Config) (*CerebralV1alpha1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -49,12 +54,12 @@ func NewForConfig(c *rest.Config) (*MetricsBackendV1alpha1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &MetricsBackendV1alpha1Client{client}, nil
+	return &CerebralV1alpha1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new MetricsBackendV1alpha1Client for the given config and
+// NewForConfigOrDie creates a new CerebralV1alpha1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *MetricsBackendV1alpha1Client {
+func NewForConfigOrDie(c *rest.Config) *CerebralV1alpha1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -62,9 +67,9 @@ func NewForConfigOrDie(c *rest.Config) *MetricsBackendV1alpha1Client {
 	return client
 }
 
-// New creates a new MetricsBackendV1alpha1Client for the given RESTClient.
-func New(c rest.Interface) *MetricsBackendV1alpha1Client {
-	return &MetricsBackendV1alpha1Client{c}
+// New creates a new CerebralV1alpha1Client for the given RESTClient.
+func New(c rest.Interface) *CerebralV1alpha1Client {
+	return &CerebralV1alpha1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -82,7 +87,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *MetricsBackendV1alpha1Client) RESTClient() rest.Interface {
+func (c *CerebralV1alpha1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

@@ -24,6 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// AutoScalingGroups returns a AutoScalingGroupInformer.
+	AutoScalingGroups() AutoScalingGroupInformer
 	// MetricsBackends returns a MetricsBackendInformer.
 	MetricsBackends() MetricsBackendInformer
 }
@@ -37,6 +39,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// AutoScalingGroups returns a AutoScalingGroupInformer.
+func (v *version) AutoScalingGroups() AutoScalingGroupInformer {
+	return &autoScalingGroupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // MetricsBackends returns a MetricsBackendInformer.
