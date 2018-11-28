@@ -19,7 +19,7 @@ limitations under the License.
 package versioned
 
 import (
-	metricsbackendv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/cerebral.containership.io/v1alpha1"
+	cerebralv1alpha1 "github.com/containership/cerebral/pkg/client/clientset/versioned/typed/cerebral.containership.io/v1alpha1"
 	glog "github.com/golang/glog"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
@@ -28,27 +28,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	MetricsBackendV1alpha1() metricsbackendv1alpha1.MetricsBackendV1alpha1Interface
+	CerebralV1alpha1() cerebralv1alpha1.CerebralV1alpha1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	MetricsBackend() metricsbackendv1alpha1.MetricsBackendV1alpha1Interface
+	Cerebral() cerebralv1alpha1.CerebralV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	metricsBackendV1alpha1 *metricsbackendv1alpha1.MetricsBackendV1alpha1Client
+	cerebralV1alpha1 *cerebralv1alpha1.CerebralV1alpha1Client
 }
 
-// MetricsBackendV1alpha1 retrieves the MetricsBackendV1alpha1Client
-func (c *Clientset) MetricsBackendV1alpha1() metricsbackendv1alpha1.MetricsBackendV1alpha1Interface {
-	return c.metricsBackendV1alpha1
+// CerebralV1alpha1 retrieves the CerebralV1alpha1Client
+func (c *Clientset) CerebralV1alpha1() cerebralv1alpha1.CerebralV1alpha1Interface {
+	return c.cerebralV1alpha1
 }
 
-// Deprecated: MetricsBackend retrieves the default version of MetricsBackendClient.
+// Deprecated: Cerebral retrieves the default version of CerebralClient.
 // Please explicitly pick a version.
-func (c *Clientset) MetricsBackend() metricsbackendv1alpha1.MetricsBackendV1alpha1Interface {
-	return c.metricsBackendV1alpha1
+func (c *Clientset) Cerebral() cerebralv1alpha1.CerebralV1alpha1Interface {
+	return c.cerebralV1alpha1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -67,7 +67,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.metricsBackendV1alpha1, err = metricsbackendv1alpha1.NewForConfig(&configShallowCopy)
+	cs.cerebralV1alpha1, err = cerebralv1alpha1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.metricsBackendV1alpha1 = metricsbackendv1alpha1.NewForConfigOrDie(c)
+	cs.cerebralV1alpha1 = cerebralv1alpha1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -93,7 +93,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.metricsBackendV1alpha1 = metricsbackendv1alpha1.New(c)
+	cs.cerebralV1alpha1 = cerebralv1alpha1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

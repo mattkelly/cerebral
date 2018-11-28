@@ -18,6 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
+// AutoscalingGroupListerExpansion allows custom methods to be added to
+// AutoscalingGroupLister.
+type AutoscalingGroupListerExpansion interface{}
+
 // MetricsBackendListerExpansion allows custom methods to be added to
 // MetricsBackendLister.
 type MetricsBackendListerExpansion interface{}

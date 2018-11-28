@@ -30,7 +30,7 @@ import (
 
 // FakeMetricsBackends implements MetricsBackendInterface
 type FakeMetricsBackends struct {
-	Fake *FakeMetricsBackendV1alpha1
+	Fake *FakeCerebralV1alpha1
 }
 
 var metricsbackendsResource = schema.GroupVersionResource{Group: "cerebral.containership.io", Version: "v1alpha1", Resource: "metricsbackends"}
