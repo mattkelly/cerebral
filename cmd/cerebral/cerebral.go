@@ -19,8 +19,7 @@ import (
 	cinformers "github.com/containership/cerebral/pkg/client/informers/externalversions"
 	"github.com/containership/cerebral/pkg/controller"
 
-	// Register the autoscaling engine that needs to be initialized
-	_ "github.com/containership/cerebral/pkg/autoscalingengine/containership"
+	"github.com/containership/cluster-manager/pkg/log"
 )
 
 func main() {
