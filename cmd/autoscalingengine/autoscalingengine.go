@@ -1,12 +1,13 @@
-package app
+package main
 
 import (
-	//"os"
 	"runtime"
 	"time"
 
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
@@ -20,10 +21,8 @@ import (
 	"github.com/containership/cluster-manager/pkg/log"
 )
 
-// Run creates the controller that reconciles the node count associated with
-// an autoscaling group, with the autoscaling groups min and max nodes
-func Run(stopCh <-chan struct{}) error {
-	log.Info("Starting Containership AutoScaling Engine Controller...")
+func main() {
+	log.Info("Starting Containership Autoscaling Engine Controller...")
 	log.Infof("Version: %s", buildinfo.String())
 	log.Infof("Go Version: %s", runtime.Version())
 
@@ -48,12 +47,11 @@ func Run(stopCh <-chan struct{}) error {
 	autoscalingGroupController := controller.NewAutoscalingGroupController(
 		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory, ae)
 
+	stopCh := wait.NeverStop
 	kubeInformerFactory.Start(stopCh)
 	cerebralInformerFactory.Start(stopCh)
 
 	if err = autoscalingGroupController.Run(1, stopCh); err != nil {
 		log.Fatalf("Error running controller: %s", err.Error())
 	}
-
-	return nil
 }
