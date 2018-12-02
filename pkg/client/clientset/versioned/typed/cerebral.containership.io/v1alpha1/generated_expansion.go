@@ -20,4 +20,6 @@ package v1alpha1
 
 type AutoscalingGroupExpansion interface{}
 
+type AutoscalingPolicyExpansion interface{}
+
 type MetricsBackendExpansion interface{}

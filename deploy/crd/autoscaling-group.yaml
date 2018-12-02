@@ -11,7 +11,7 @@ spec:
     singular: autoscalinggroup
     plural: autoscalinggroups
     shortNames:
-    - ag
+    - asg
   scope: Cluster
   version: v1alpha1
   versions:
@@ -30,7 +30,7 @@ spec:
           - maxNodes
           - cooldownPeriod
           properties:
-            nodeAffinity:
+            nodeSelector:
               type: object
             policies:
               type: array
@@ -38,22 +38,22 @@ spec:
                 type: string
             engine:
               type: string
-            suspended:
-              type: boolean
             cooldownPeriod:
               type: integer
-            maxNodes:
+            suspended:
+              type: boolean
+            minNodes:
               type: integer
               minimum: 0
-            minNodes:
+            maxNodes:
               type: integer
               minimum: 0
             scalingStrategy:
               type: object
               properties:
-                up:
+                scaleUp:
                   type: string
-                down:
+                scaleDown:
                   type: string
         status:
           properties:

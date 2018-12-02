@@ -22,6 +22,10 @@ package v1alpha1
 // AutoscalingGroupLister.
 type AutoscalingGroupListerExpansion interface{}
 
+// AutoscalingPolicyListerExpansion allows custom methods to be added to
+// AutoscalingPolicyLister.
+type AutoscalingPolicyListerExpansion interface{}
+
 // MetricsBackendListerExpansion allows custom methods to be added to
 // MetricsBackendLister.
 type MetricsBackendListerExpansion interface{}

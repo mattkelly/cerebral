@@ -38,6 +38,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&MetricsBackendList{},
 		&AutoscalingGroup{},
 		&AutoscalingGroupList{},
+		&AutoscalingPolicy{},
+		&AutoscalingPolicyList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

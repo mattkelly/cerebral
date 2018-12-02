@@ -19,7 +19,8 @@ type MetricsBackend struct {
 
 // MetricsBackendSpec is the spec for a metrics backend
 type MetricsBackendSpec struct {
-	Address string `json:"address"`
+	Type          string            `json:"type"`
+	Configuration map[string]string `json:"configuration"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -65,8 +66,8 @@ type AutoscalingGroupStatus struct {
 
 // ScalingStrategy defines the strategy that should be used when scaling up and down
 type ScalingStrategy struct {
-	Up   string `json:"up"`
-	Down string `json:"down"`
+	ScaleUp   string `json:"scaleUp"`
+	ScaleDown string `json:"scaleDown"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -77,4 +78,51 @@ type AutoscalingGroupList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []AutoscalingGroup `json:"items"`
+}
+
+// +genclient
+// +genclient:noStatus
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AutoscalingPolicy describes a node group for autoscaling
+type AutoscalingPolicy struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec AutoscalingPolicySpec `json:"spec"`
+}
+
+// AutoscalingPolicySpec is the spec for a autoscaling group
+type AutoscalingPolicySpec struct {
+	MetricsBackend      string            `json:"metricsBackend"`
+	Metric              string            `json:"metric"`
+	MetricConfiguration map[string]string `json:"metricConfiguration"`
+	ScalingPolicy       ScalingPolicy     `json:"scalingPolicy"`
+	PollInterval        int               `json:"pollInterval"`
+	SamplePeriod        int               `json:"samplePeriod"`
+}
+
+// ScalingPolicy holds the policy configurations for scaling up and down
+type ScalingPolicy struct {
+	ScaleUp   ScalingPolicyConfiguration `json:"scaleUp"`
+	ScaleDown ScalingPolicyConfiguration `json:"scaleDown"`
+}
+
+// A ScalingPolicyConfiguration defines the criterion for triggering a scale event
+type ScalingPolicyConfiguration struct {
+	Threshold          float64 `json:"threshold"`
+	ComparisonOperator string  `json:"comparisonOperator"`
+	AdjustmentType     string  `json:"adjustmentType"`
+	AdjustmentValue    int     `json:"adjustmentValue"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AutoscalingPolicyList is a list of autoscaling groups.
+type AutoscalingPolicyList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []AutoscalingPolicy `json:"items"`
 }
