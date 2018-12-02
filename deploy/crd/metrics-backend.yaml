@@ -17,5 +17,14 @@ spec:
   - name: v1alpha1
     served: true
     storage: true
-  subresources:
-    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          required:
+            - type
+          properties:
+            type:
+              type: string
+            configuration:
+              type: object

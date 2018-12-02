@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// AutoscalingGroups returns a AutoscalingGroupInformer.
 	AutoscalingGroups() AutoscalingGroupInformer
+	// AutoscalingPolicies returns a AutoscalingPolicyInformer.
+	AutoscalingPolicies() AutoscalingPolicyInformer
 	// MetricsBackends returns a MetricsBackendInformer.
 	MetricsBackends() MetricsBackendInformer
 }
@@ -44,6 +46,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // AutoscalingGroups returns a AutoscalingGroupInformer.
 func (v *version) AutoscalingGroups() AutoscalingGroupInformer {
 	return &autoscalingGroupInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// AutoscalingPolicies returns a AutoscalingPolicyInformer.
+func (v *version) AutoscalingPolicies() AutoscalingPolicyInformer {
+	return &autoscalingPolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // MetricsBackends returns a MetricsBackendInformer.

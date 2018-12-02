@@ -93,7 +93,7 @@ func TestGetNodesLabelSelector(t *testing.T) {
 type buildFindNodesAG struct {
 	name       string
 	nodeLabels map[string]string
-	ags       []*cerebralv1alpha1.AutoscalingGroup
+	ags        []*cerebralv1alpha1.AutoscalingGroup
 	expected   []*cerebralv1alpha1.AutoscalingGroup
 }
 
@@ -213,8 +213,8 @@ func TestGetAutoscalingGroupStrategy(t *testing.T) {
 	ag := &cerebralv1alpha1.AutoscalingGroup{
 		Spec: cerebralv1alpha1.AutoscalingGroupSpec{
 			ScalingStrategy: cerebralv1alpha1.ScalingStrategy{
-				Up:   upStrategy,
-				Down: downStrategy,
+				ScaleUp:   upStrategy,
+				ScaleDown: downStrategy,
 			},
 		},
 	}

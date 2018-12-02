@@ -276,9 +276,9 @@ func isScaleUpEvent(curr, desired int) bool {
 func getAutoscalingGroupStrategy(scaleUp bool, ag cerebralv1alpha1.AutoscalingGroupSpec) string {
 	var strategy string
 	if scaleUp {
-		strategy = ag.ScalingStrategy.Up
+		strategy = ag.ScalingStrategy.ScaleUp
 	} else {
-		strategy = ag.ScalingStrategy.Down
+		strategy = ag.ScalingStrategy.ScaleDown
 	}
 
 	if strategy == "" {

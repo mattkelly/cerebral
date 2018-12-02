@@ -1,0 +1,8 @@
+apiVersion: cerebral.containership.io/v1alpha1
+kind: MetricsBackend
+metadata:
+  name: prometheus
+spec:
+  type: prometheus
+  configuration:
+    address: http://prometheus-operated.containership-core.svc.cluster.local:9090
