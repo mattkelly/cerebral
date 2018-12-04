@@ -126,3 +126,32 @@ type AutoscalingPolicyList struct {
 
 	Items []AutoscalingPolicy `json:"items"`
 }
+
+// +genclient
+// +genclient:noStatus
+// +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AutoscalingEngine describes an engine to use for autoscaling
+type AutoscalingEngine struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec AutoscalingEngineSpec `json:"spec"`
+}
+
+// AutoscalingEngineSpec describes the spec for the AutoscalingEngine
+type AutoscalingEngineSpec struct {
+	Type          string            `json:"type"`
+	Configuration map[string]string `json:"configuration"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// AutoscalingEngineList is a list of AutoscalingEngines
+type AutoscalingEngineList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []AutoscalingEngine `json:"items"`
+}

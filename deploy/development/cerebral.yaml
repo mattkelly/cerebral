@@ -35,3 +35,15 @@ spec:
         env:
         - name: LOG_LEVEL
           value: DEBUG
+        - name: CONTAINERSHIP_CLOUD_CLUSTER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: containership-env-secret
+              key: CONTAINERSHIP_CLOUD_CLUSTER_API_KEY
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: containership-env-secret
+stringData:
+  CONTAINERSHIP_CLOUD_CLUSTER_API_KEY: eyJ...

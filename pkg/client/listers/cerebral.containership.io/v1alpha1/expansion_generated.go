@@ -18,6 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
+// AutoscalingEngineListerExpansion allows custom methods to be added to
+// AutoscalingEngineLister.
+type AutoscalingEngineListerExpansion interface{}
+
 // AutoscalingGroupListerExpansion allows custom methods to be added to
 // AutoscalingGroupLister.
 type AutoscalingGroupListerExpansion interface{}

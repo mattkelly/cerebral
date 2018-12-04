@@ -27,6 +27,7 @@ import (
 
 type CerebralV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	AutoscalingEnginesGetter
 	AutoscalingGroupsGetter
 	AutoscalingPoliciesGetter
 	MetricsBackendsGetter
@@ -35,6 +36,10 @@ type CerebralV1alpha1Interface interface {
 // CerebralV1alpha1Client is used to interact with features provided by the cerebral.containership.io group.
 type CerebralV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *CerebralV1alpha1Client) AutoscalingEngines() AutoscalingEngineInterface {
+	return newAutoscalingEngines(c)
 }
 
 func (c *CerebralV1alpha1Client) AutoscalingGroups() AutoscalingGroupInterface {

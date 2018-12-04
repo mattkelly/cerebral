@@ -36,6 +36,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&MetricsBackend{},
 		&MetricsBackendList{},
+		&AutoscalingEngine{},
+		&AutoscalingEngineList{},
 		&AutoscalingGroup{},
 		&AutoscalingGroupList{},
 		&AutoscalingPolicy{},

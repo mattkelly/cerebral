@@ -28,6 +28,10 @@ type FakeCerebralV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeCerebralV1alpha1) AutoscalingEngines() v1alpha1.AutoscalingEngineInterface {
+	return &FakeAutoscalingEngines{c}
+}
+
 func (c *FakeCerebralV1alpha1) AutoscalingGroups() v1alpha1.AutoscalingGroupInterface {
 	return &FakeAutoscalingGroups{c}
 }
