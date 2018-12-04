@@ -24,7 +24,7 @@ import (
 	"github.com/containership/cluster-manager/pkg/log"
 
 	cerebralv1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
-	engine "github.com/containership/cerebral/pkg/autoscalingengine"
+	"github.com/containership/cerebral/pkg/autoscalingengine"
 	cerebral "github.com/containership/cerebral/pkg/client/clientset/versioned"
 	cerebralscheme "github.com/containership/cerebral/pkg/client/clientset/versioned/scheme"
 	cinformers "github.com/containership/cerebral/pkg/client/informers/externalversions"
@@ -64,8 +64,6 @@ type AutoscalingGroupController struct {
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
 	recorder record.EventRecorder
-
-	autoscalingengine *engine.AutoscalingEngine
 }
 
 // NewAutoscalingGroupController returns a new controller to watch
@@ -73,15 +71,13 @@ type AutoscalingGroupController struct {
 func NewAutoscalingGroupController(kubeclientset kubernetes.Interface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	cerebralclientset cerebral.Interface,
-	cInformerFactory cinformers.SharedInformerFactory,
-	ae *engine.AutoscalingEngine) *AutoscalingGroupController {
+	cInformerFactory cinformers.SharedInformerFactory) *AutoscalingGroupController {
 	rateLimiter := workqueue.NewItemExponentialFailureRateLimiter(delayBetweenRequeues, maxRequeues)
 
 	agc := &AutoscalingGroupController{
 		kubeclientset:     kubeclientset,
 		cerebralclientset: cerebralclientset,
 		workqueue:         workqueue.NewNamedRateLimitingQueue(rateLimiter, controllerName),
-		autoscalingengine: ae,
 	}
 
 	cerebralscheme.AddToScheme(scheme.Scheme)
@@ -295,7 +291,7 @@ func getAutoscalingGroupStrategy(scaleUp bool, ag cerebralv1alpha1.AutoscalingGr
 func (agc *AutoscalingGroupController) syncHandler(key string) error {
 	_, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
+		runtime.HandleError(errors.Errorf("invalid resource key: %s", key))
 		return nil
 	}
 
@@ -314,9 +310,8 @@ func (agc *AutoscalingGroupController) syncHandler(key string) error {
 	}
 
 	engineName := autoscalingGroup.Spec.Engine
-	if !agc.autoscalingengine.IsRegistered(engineName) {
-		log.Errorf("The Autoscaling Engine specified for the Autoscaling Group '%s' is not registered.", autoscalingGroup.Name)
-		return nil
+	if !autoscalingengine.Registry().IsRegistered(engineName) {
+		return errors.Errorf("the AutoscalingEngine specified for the AutoscalingGroup '%s' is not registered", autoscalingGroup.Name)
 	}
 
 	ns := getNodesLabelSelector(autoscalingGroup.Spec.NodeSelector)
@@ -332,14 +327,14 @@ func (agc *AutoscalingGroupController) syncHandler(key string) error {
 		return nil
 	}
 
-	engine, err := agc.autoscalingengine.Get(engineName)
+	engine, err := autoscalingengine.Registry().Get(engineName)
 	if err != nil {
 		return err
 	}
 
 	scaledUp := isScaleUpEvent(numNodes, desired)
 	strategy := getAutoscalingGroupStrategy(scaledUp, autoscalingGroup.Spec)
-	scaled, err := engine.SetTargetNodeCount(ns, desired, strategy)
+	scaled, err := engine.SetTargetNodeCount(autoscalingGroup.Spec.NodeSelector, desired, strategy)
 	if err != nil {
 		return err
 	}
