@@ -19,8 +19,8 @@ type MetricsBackend struct {
 
 // MetricsBackendSpec is the spec for a metrics backend
 type MetricsBackendSpec struct {
-	Type          string            `json:"type"`
-	Configuration map[string]string `json:"configuration"`
+	Type          string                            `json:"type"`
+	Configuration map[string]ConfigurationInterface `json:"configuration"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -95,12 +95,12 @@ type AutoscalingPolicy struct {
 
 // AutoscalingPolicySpec is the spec for a autoscaling group
 type AutoscalingPolicySpec struct {
-	MetricsBackend      string            `json:"metricsBackend"`
-	Metric              string            `json:"metric"`
-	MetricConfiguration map[string]string `json:"metricConfiguration"`
-	ScalingPolicy       ScalingPolicy     `json:"scalingPolicy"`
-	PollInterval        int               `json:"pollInterval"`
-	SamplePeriod        int               `json:"samplePeriod"`
+	MetricsBackend      string                            `json:"metricsBackend"`
+	Metric              string                            `json:"metric"`
+	MetricConfiguration map[string]ConfigurationInterface `json:"metricConfiguration"`
+	ScalingPolicy       ScalingPolicy                     `json:"scalingPolicy"`
+	PollInterval        int                               `json:"pollInterval"`
+	SamplePeriod        int                               `json:"samplePeriod"`
 }
 
 // ScalingPolicy holds the policy configurations for scaling up and down
@@ -125,4 +125,11 @@ type AutoscalingPolicyList struct {
 	metav1.ListMeta `json:"metadata"`
 
 	Items []AutoscalingPolicy `json:"items"`
+}
+
+// ConfigurationInterface is used for configuration objects, this allows
+// the DeepCopy functions for code gen to be created
+// https://github.com/kubernetes/code-generator/issues/50
+type ConfigurationInterface interface {
+	DeepCopyConfigurationInterface() ConfigurationInterface
 }
