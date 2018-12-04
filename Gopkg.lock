@@ -18,12 +18,35 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  digest = "1:297a3c21bf1d3b4695a222e43e982bb52b4b9e156ca2eadbe32b898d0a1ae551"
+  name = "github.com/asaskevich/govalidator"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "ccb8e960c48f04d6935e72476ae4a51028f9e22f"
+  version = "v9"
+
+[[projects]]
   digest = "1:d60cc6b5fad6dacd635c595930ac61548b53caf424c3ee3599a251f4c7d77822"
   name = "github.com/containership/cluster-manager"
   packages = ["pkg/log"]
   pruneopts = "T"
   revision = "a1723a93b4daa9da7d57d91dd8c62146ebbb6763"
   version = "v4.0.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:870930fc29f8288a7eec3437e264c03147ae955d1d18a8fed2c2bd20e765a6f4"
+  name = "github.com/containership/csctl"
+  packages = [
+    "cloud",
+    "cloud/api",
+    "cloud/api/types",
+    "cloud/provision",
+    "cloud/provision/types",
+    "cloud/rest",
+  ]
+  pruneopts = "T"
+  revision = "f38128550600f3d718d0f57631b5743abdd0cfb9"
 
 [[projects]]
   digest = "1:9f42202ac457c462ad8bb9642806d275af9ab4850cf0b1960b9c6f083d4a309a"
@@ -53,6 +76,36 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:0ab8d37960557936b3b2ebd497a354d448efe067c42187cfc13549c2bbb0fb5f"
+  name = "github.com/globalsign/mgo"
+  packages = [
+    "bson",
+    "internal/json",
+  ]
+  pruneopts = "T"
+  revision = "eeefdecb41b842af6dc652aaea4026e8403e62df"
+
+[[projects]]
+  digest = "1:1aaf46876cac9e95cc5aba95df3f6dd8a22c4c2d41a3e89d82a62123f1714dbd"
+  name = "github.com/go-openapi/analysis"
+  packages = [
+    ".",
+    "internal",
+  ]
+  pruneopts = "T"
+  revision = "c701774f4e604d952e4e8c56dee260be696e33c3"
+  version = "v0.17.2"
+
+[[projects]]
+  digest = "1:3a139538d237b9aa348ce08037b711de8f1b6077c7d011b100cd5f9e925bfe09"
+  name = "github.com/go-openapi/errors"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "d9664f9fab8994271e573ed69cf2adfc09b7a800"
+  version = "v0.17.2"
+
+[[projects]]
   digest = "1:701ec53dfa0182bf25e5c09e664906f11d697e779b59461a2607dbd4dc75a4f9"
   name = "github.com/go-openapi/jsonpointer"
   packages = ["."]
@@ -69,11 +122,35 @@
   version = "v0.17.2"
 
 [[projects]]
+  digest = "1:23551234bf38f0ef0c5b62f3934daa3902e8a76a8e9a31e10b0a95f53b494c32"
+  name = "github.com/go-openapi/loads"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "150d36912387ec2f607be674c5be309ddccc0eed"
+  version = "v0.17.2"
+
+[[projects]]
+  digest = "1:c89d8f74ab52ebe9a033051fa1b09a33ef106cd2eb7a43fa74b33120aae86de3"
+  name = "github.com/go-openapi/runtime"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "231d7876b7019dbcbfc97a7ba764379497b67c1d"
+  version = "v0.17.2"
+
+[[projects]]
   digest = "1:76b8b440ca412e287dff607469a5a40a9445fe7168ad1fb85916d87c66011c83"
   name = "github.com/go-openapi/spec"
   packages = ["."]
   pruneopts = "T"
   revision = "5bae59e25b21498baea7f9d46e9c147ec106a42e"
+  version = "v0.17.2"
+
+[[projects]]
+  digest = "1:9d9d53f7fc98a0a9e1879fa7fead9b7b964cb1a9afd9f74a3e1c0686b47e1af4"
+  name = "github.com/go-openapi/strfmt"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "edab9990ffc9b4a428f3306ecf4d18a069ca3317"
   version = "v0.17.2"
 
 [[projects]]
@@ -83,6 +160,22 @@
   pruneopts = "T"
   revision = "5899d5c5e619fda5fa86e14795a835f473ca284c"
   version = "v0.17.2"
+
+[[projects]]
+  digest = "1:5ac92b91bd8e0041a5fd9a6309c85557c3e4b47d730be454dea62da21f332c91"
+  name = "github.com/go-openapi/validate"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "d2eab7d93009e9215fc85b2faa2c2f2a98c2af48"
+  version = "v0.17.2"
+
+[[projects]]
+  digest = "1:a98ccd3e8c6feaad695651ab064ae9513827983bd3b85fa95a02ed615a0a0be3"
+  name = "github.com/go-resty/resty"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "13ff84ebd5bdfa46a342d9edb869e21560a478f8"
+  version = "v1.10.2"
 
 [[projects]]
   digest = "1:da39f4a22829ca95e63566208e0ea42d6f055f41dff1b14fdab88d88f62df653"
@@ -202,6 +295,14 @@
   ]
   pruneopts = "T"
   revision = "60711f1a8329503b04e1c88535f419d0bb440bff"
+
+[[projects]]
+  digest = "1:53bc4cd4914cd7cd52139990d5170d6dc99067ae31c56530621b18b35fc30318"
+  name = "github.com/mitchellh/mapstructure"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "3536a929edddb9a5b34bd6861dc4a9647cb459fe"
+  version = "v1.1.2"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -347,6 +448,7 @@
     "http2",
     "http2/hpack",
     "idna",
+    "publicsuffix",
   ]
   pruneopts = "T"
   revision = "fae4c4e3ad76c295c3d6d259f898136b4bf833a8"
@@ -542,7 +644,7 @@
   version = "kubernetes-1.12.3"
 
 [[projects]]
-  digest = "1:5aa94390c366adc57a82b19ad4f99482ab8fbeca0a2ff7b09db12d7baf590e46"
+  digest = "1:d6b3b22d9442b9c22e1b2cfe911e2f74e8aefb6fddae613769fea0de3e295374"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -712,8 +814,8 @@
     "util/workqueue",
   ]
   pruneopts = "T"
-  revision = "d082d5923d3cc0bfbb066ee5fbdea3d0ca79acf8"
-  version = "kubernetes-1.12.3"
+  revision = "1638f8970cefaa404ff3a62950f88b08292b2696"
+  version = "v9.0.0"
 
 [[projects]]
   branch = "release-1.10"
@@ -793,6 +895,8 @@
   analyzer-version = 1
   input-imports = [
     "github.com/containership/cluster-manager/pkg/log",
+    "github.com/containership/csctl/cloud",
+    "github.com/containership/csctl/cloud/provision/types",
     "github.com/golang/glog",
     "github.com/pkg/errors",
     "github.com/prometheus/client_golang/api",
