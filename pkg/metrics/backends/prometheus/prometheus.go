@@ -19,6 +19,7 @@ import (
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
 
 	"github.com/containership/cerebral/pkg/metrics"
+	"github.com/containership/cerebral/pkg/nodeutil"
 	"github.com/containership/cluster-manager/pkg/log"
 )
 
@@ -28,7 +29,8 @@ import (
 type Backend struct {
 	prometheus prometheus.API
 
-	podLister corelistersv1.PodLister
+	nodeLister corelistersv1.NodeLister
+	podLister  corelistersv1.PodLister
 }
 
 // Average CPU usage across the given nodes for the given range
@@ -55,12 +57,16 @@ const memoryQueryTemplateString = `
 var memoryQueryTemplate = template.Must(template.New("mem").Parse(memoryQueryTemplateString))
 
 // NewClient returns a new client for talking to a Prometheus Backend, or an error
-func NewClient(address string, podLister corelistersv1.PodLister) (metrics.Backend, error) {
+func NewClient(address string, nodeLister corelistersv1.NodeLister, podLister corelistersv1.PodLister) (metrics.Backend, error) {
 	if address == "" {
 		// Under the hood, prometheusclient uses url.Parse() which allows
 		// relative URLs, etc. Empty would be allowed, so disallow it
 		// explicitly here.
 		return nil, errors.New("address must not be empty")
+	}
+
+	if nodeLister == nil {
+		return nil, errors.New("node lister must be provided")
 	}
 
 	if podLister == nil {
@@ -78,12 +84,19 @@ func NewClient(address string, podLister corelistersv1.PodLister) (metrics.Backe
 
 	return Backend{
 		prometheus: api,
+		nodeLister: nodeLister,
 		podLister:  podLister,
 	}, nil
 }
 
 // GetValue implements the metrics.Backend interface
-func (b Backend) GetValue(metric string, configuration map[string]string, nodes []*corev1.Node) (float64, error) {
+func (b Backend) GetValue(metric string, configuration map[string]string, nodeSelector map[string]string) (float64, error) {
+	selector := nodeutil.GetNodesLabelSelector(nodeSelector)
+	nodes, err := b.nodeLister.List(selector)
+	if err != nil {
+		return 0, errors.Wrap(err, "listing nodes")
+	}
+
 	podIPs, err := b.getNodeExporterPodIPsOnNodes(nodes)
 	if err != nil {
 		return 0, errors.Wrapf(err, "getting Prometheus node exporter pod IPs for metric %s", metric)

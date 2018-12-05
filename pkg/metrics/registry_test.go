@@ -4,15 +4,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	corev1 "k8s.io/api/core/v1"
 )
 
 type stubBackend struct {
 	name string
 }
 
-func (b stubBackend) GetValue(_ string, _ map[string]string, _ []*corev1.Node) (float64, error) {
+func (b stubBackend) GetValue(_ string, _ map[string]string, _ map[string]string) (float64, error) {
 	return 0, nil
 }
 

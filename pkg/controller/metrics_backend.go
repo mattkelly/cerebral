@@ -51,9 +51,12 @@ type MetricsBackendController struct {
 	metricsBackendLister clisters.MetricsBackendLister
 	metricsBackendSynced cache.InformerSynced
 
-	// The Prometheus backend requires a pod lister in order to gather
-	// node exporter info, so just hold it here so it can be initialized
-	// with everything else to avoid weirdness
+	// The Prometheus backend requires pod and node listers in order to gather
+	// node exporter info, so just hold it here so it can be initialized with
+	// everything else to avoid weirdness
+	nodeLister corelistersv1.NodeLister
+	nodeSynced cache.InformerSynced
+
 	podLister corelistersv1.PodLister
 	podSynced cache.InformerSynced
 
@@ -86,6 +89,7 @@ func NewMetricsBackend(kubeclientset kubernetes.Interface,
 
 	metricsBackendInformer := cInformerFactory.Cerebral().V1alpha1().MetricsBackends()
 
+	nodeInformer := kubeInformerFactory.Core().V1().Nodes()
 	podInformer := kubeInformerFactory.Core().V1().Pods()
 
 	log.Infof("%s: setting up event handlers", metricsBackendControllerName)
@@ -108,6 +112,9 @@ func NewMetricsBackend(kubeclientset kubernetes.Interface,
 	c.metricsBackendLister = metricsBackendInformer.Lister()
 	c.metricsBackendSynced = metricsBackendInformer.Informer().HasSynced
 
+	c.nodeLister = nodeInformer.Lister()
+	c.nodeSynced = nodeInformer.Informer().HasSynced
+
 	c.podLister = podInformer.Lister()
 	c.podSynced = podInformer.Informer().HasSynced
 
@@ -125,10 +132,10 @@ func (c *MetricsBackendController) Run(numWorkers int, stopCh <-chan struct{}) e
 	// Start the informer factories to begin populating the informer caches
 	log.Infof("Starting %s", metricsBackendControllerName)
 
-	if ok := cache.WaitForCacheSync(stopCh, c.metricsBackendSynced, c.podSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.metricsBackendSynced, c.nodeSynced, c.podSynced); !ok {
 		// If this channel is unable to wait for caches to sync we stop
 		// all controllers
-		return fmt.Errorf("%s: failed to wait for caches to sync", metricsBackendControllerName)
+		return errors.Errorf("%s: failed to wait for caches to sync", metricsBackendControllerName)
 	}
 
 	log.Infof("%s: starting workers", metricsBackendControllerName)
@@ -268,7 +275,7 @@ func (c *MetricsBackendController) instantiateBackend(backend *cerebralv1alpha1.
 			return nil, errors.New("Prometheus backend requires address in configuration")
 		}
 
-		return prometheus.NewClient(address, c.podLister)
+		return prometheus.NewClient(address, c.nodeLister, c.podLister)
 
 	default:
 		return nil, errors.Errorf("unknown backend type %q", backend.Spec.Type)

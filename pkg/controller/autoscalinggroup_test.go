@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	cerebralv1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
+	"github.com/containership/cerebral/pkg/nodeutil"
 )
 
 type buildDesiredCountTest struct {
@@ -85,7 +86,7 @@ var buildNodesLabelSelectorTests = []*buildNodesLabelSelector{
 
 func TestGetNodesLabelSelector(t *testing.T) {
 	for _, test := range buildNodesLabelSelectorTests {
-		r := getNodesLabelSelector(test.labels)
+		r := nodeutil.GetNodesLabelSelector(test.labels)
 		assert.Equal(t, test.expectedString, r.String(), test.name)
 	}
 }

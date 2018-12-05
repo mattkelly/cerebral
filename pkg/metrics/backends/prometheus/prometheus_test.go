@@ -95,18 +95,22 @@ var (
 func TestNewClient(t *testing.T) {
 	// Should never fail with any valid URL because it's only constructing an
 	// http.Client under the hood
-	client, err := NewClient(validURL, corelistersv1.NewPodLister(nil))
+	client, err := NewClient(validURL, corelistersv1.NewNodeLister(nil), corelistersv1.NewPodLister(nil))
 	assert.NotNil(t, client)
 	assert.NoError(t, err, "any valid URL is ok")
 
-	_, err = NewClient("", corelistersv1.NewPodLister(nil))
+	client, err = NewClient("", corelistersv1.NewNodeLister(nil), corelistersv1.NewPodLister(nil))
 	assert.Error(t, err, "error on empty URL")
 
-	_, err = NewClient(validURL, nil)
+	_, err = NewClient(validURL, nil, corelistersv1.NewPodLister(nil))
+	assert.Error(t, err, "error on nil NodeLister")
+
+	_, err = NewClient(validURL, corelistersv1.NewNodeLister(nil), nil)
 	assert.Error(t, err, "error on nil PodLister")
 }
 
 func TestGetValue(t *testing.T) {
+	nodeLister := buildNodeLister(nil)
 	podLister := buildPodLister(nil)
 
 	mockProm := mocks.API{}
@@ -116,6 +120,7 @@ func TestGetValue(t *testing.T) {
 
 	backend := Backend{
 		prometheus: &mockProm,
+		nodeLister: nodeLister,
 		podLister:  podLister,
 	}
 
@@ -246,6 +251,27 @@ func TestBuildInstancesRegex(t *testing.T) {
 
 	regex = buildInstancesRegex(multipleIPs)
 	assert.Equal(t, "10.0.0.1:.*|10.0.0.2:.*|10.0.0.3:.*", regex, "multiple IP regex")
+}
+
+// Get a node lister. Copies of the nodes are added to the cache; not the nodes themselves.
+func buildNodeLister(nodes []corev1.Node) corelistersv1.NodeLister {
+	// We don't need anything related to the client or informer; we're simply
+	// using this as an easy way to build a cache
+	client := &fake.Clientset{}
+	kubeInformerFactory := informers.NewSharedInformerFactory(client, 30*time.Second)
+	informer := kubeInformerFactory.Core().V1().Nodes()
+
+	for _, node := range nodes {
+		// TODO why is DeepCopy() required here? Without it, each Add() duplicates
+		// the first member added.
+		err := informer.Informer().GetStore().Add(node.DeepCopy())
+		if err != nil {
+			// Should be a programming error
+			panic(err)
+		}
+	}
+
+	return informer.Lister()
 }
 
 // Get a pod lister. Copies of the pods are added to the cache; not the pods themselves.
