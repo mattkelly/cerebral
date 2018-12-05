@@ -83,7 +83,7 @@ func NewClient(address string, podLister corelistersv1.PodLister) (metrics.Backe
 }
 
 // GetValue implements the metrics.Backend interface
-func (b Backend) GetValue(metric string, configuration map[string]interface{}, nodes []corev1.Node) (float64, error) {
+func (b Backend) GetValue(metric string, configuration map[string]string, nodes []corev1.Node) (float64, error) {
 	podIPs, err := b.getNodeExporterPodIPsOnNodes(nodes)
 	if err != nil {
 		return 0, errors.Wrapf(err, "getting Prometheus node exporter pod IPs for metric %s", metric)
@@ -162,7 +162,7 @@ func (b Backend) performQuery(query string) (float64, error) {
 	return result, nil
 }
 
-func buildCPUQuery(instanceIPs []string, configuration map[string]interface{}) (string, error) {
+func buildCPUQuery(instanceIPs []string, configuration map[string]string) (string, error) {
 	config := cpuMetricConfiguration{}
 	if err := config.defaultAndValidate(configuration); err != nil {
 		return "", errors.Wrap(err, "validating configuration")
@@ -178,7 +178,7 @@ func buildCPUQuery(instanceIPs []string, configuration map[string]interface{}) (
 	return out.String(), nil
 }
 
-func buildMemoryQuery(instanceIPs []string, configuration map[string]interface{}) (string, error) {
+func buildMemoryQuery(instanceIPs []string, configuration map[string]string) (string, error) {
 	config := metricConfiguration{}
 	if err := config.defaultAndValidate(configuration); err != nil {
 		return "", errors.Wrap(err, "validating configuration")

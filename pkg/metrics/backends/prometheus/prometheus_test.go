@@ -24,15 +24,15 @@ var (
 
 	duration = "5m"
 
-	goodConfiguration = map[string]interface{}{
+	goodConfiguration = map[string]string{
 		"aggregation": "avg",
 	}
 
-	badAggregationConfiguration = map[string]interface{}{
+	badAggregationConfiguration = map[string]string{
 		"aggregation": "invalid-aggregation",
 	}
 
-	emptyConfiguration = map[string]interface{}{}
+	emptyConfiguration = map[string]string{}
 
 	noIPs       []string
 	oneIP       = []string{"10.0.0.1"}

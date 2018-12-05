@@ -80,7 +80,7 @@ type cpuMetricConfiguration struct {
 
 // defaults and validates the metricConfiguration. Intended to be called with an
 // empty struct that we'll fill in here using the caller-provided configuration.
-func (c *metricConfiguration) defaultAndValidate(configuration map[string]interface{}) error {
+func (c *metricConfiguration) defaultAndValidate(configuration map[string]string) error {
 	// Round trip the config through JSON parser to populate our struct
 	j, _ := json.Marshal(configuration)
 	json.Unmarshal(j, c)

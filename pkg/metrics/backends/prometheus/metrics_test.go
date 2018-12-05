@@ -14,13 +14,13 @@ func TestDefaultAndValidate(t *testing.T) {
 	assert.Equal(t, defaultRange, c.Range, "range defaulted")
 
 	c = metricConfiguration{}
-	err = c.defaultAndValidate(map[string]interface{}{})
+	err = c.defaultAndValidate(map[string]string{})
 	assert.NoError(t, err, "empty config provided is ok")
 	assert.Equal(t, defaultAggregation, c.Aggregation, "aggregation defaulted")
 	assert.Equal(t, defaultRange, c.Range, "range defaulted")
 
 	c = metricConfiguration{}
-	err = c.defaultAndValidate(map[string]interface{}{
+	err = c.defaultAndValidate(map[string]string{
 		"aggregation": "max",
 		"range":       "5m",
 	})
@@ -29,21 +29,21 @@ func TestDefaultAndValidate(t *testing.T) {
 	assert.Equal(t, "5m", c.Range, "range not defaulted if provided")
 
 	c = metricConfiguration{}
-	err = c.defaultAndValidate(map[string]interface{}{
+	err = c.defaultAndValidate(map[string]string{
 		"aggregation": "not-valid",
 		"range":       "5m",
 	})
 	assert.Error(t, err, "bad aggregation")
 
 	c = metricConfiguration{}
-	err = c.defaultAndValidate(map[string]interface{}{
+	err = c.defaultAndValidate(map[string]string{
 		"aggregation": "max",
 		"range":       "asdf",
 	})
 	assert.Error(t, err, "bad range")
 
 	c = metricConfiguration{}
-	err = c.defaultAndValidate(map[string]interface{}{
+	err = c.defaultAndValidate(map[string]string{
 		"aggregation":   "max",
 		"range":         "1m",
 		"cpuMetricName": "1m",

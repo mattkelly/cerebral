@@ -9,5 +9,5 @@ type Backend interface {
 	// GetValue queries the backend and returns the raw numerical value of the
 	// requested metric (with the given configuration) for the given nodes
 	// at this point in time.
-	GetValue(metric string, configuration map[string]interface{}, nodes []corev1.Node) (float64, error)
+	GetValue(metric string, configuration map[string]string, nodes []corev1.Node) (float64, error)
 }
