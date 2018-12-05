@@ -60,19 +60,28 @@ func main() {
 	metricsBackendController := controller.NewMetricsBackend(
 		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory)
 
+	metricsController := controller.NewMetrics(
+		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory)
+
 	stopCh := make(chan struct{})
 	kubeInformerFactory.Start(stopCh)
 	cerebralInformerFactory.Start(stopCh)
 
 	go func() {
 		if err := autoscalingGroupController.Run(1, stopCh); err != nil {
-			log.Fatalf("Error running AutoscalingGroup controller: %s", err.Error())
+			log.Fatalf("Error running AutoscalingGroupController: %s", err.Error())
 		}
 	}()
 
 	go func() {
 		if err := metricsBackendController.Run(1, stopCh); err != nil {
-			log.Fatalf("Error running MetricsBackend controller: %s", err.Error())
+			log.Fatalf("Error running MetricsBackendController: %s", err.Error())
+		}
+	}()
+
+	go func() {
+		if err := metricsController.Run(1, stopCh); err != nil {
+			log.Fatalf("Error running MetricsController: %s", err.Error())
 		}
 	}()
 
