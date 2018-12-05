@@ -195,13 +195,9 @@ func (in *AutoscalingPolicySpec) DeepCopyInto(out *AutoscalingPolicySpec) {
 	*out = *in
 	if in.MetricConfiguration != nil {
 		in, out := &in.MetricConfiguration, &out.MetricConfiguration
-		*out = make(map[string]ConfigurationInterface, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				(*out)[key] = val.DeepCopyConfigurationInterface()
-			}
+			(*out)[key] = val
 		}
 	}
 	out.ScalingPolicy = in.ScalingPolicy
@@ -283,13 +279,9 @@ func (in *MetricsBackendSpec) DeepCopyInto(out *MetricsBackendSpec) {
 	*out = *in
 	if in.Configuration != nil {
 		in, out := &in.Configuration, &out.Configuration
-		*out = make(map[string]ConfigurationInterface, len(*in))
+		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				(*out)[key] = val.DeepCopyConfigurationInterface()
-			}
+			(*out)[key] = val
 		}
 	}
 	return
