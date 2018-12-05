@@ -7,6 +7,7 @@ spec:
   metric: cpu
   metricConfiguration:
     aggregation: avg
+    cpuMetricName: node_cpu
   scalingPolicy:
     scaleUp:
       threshold: 0.8
