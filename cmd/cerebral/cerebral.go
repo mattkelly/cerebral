@@ -51,13 +51,27 @@ func main() {
 	autoscalingGroupController := controller.NewAutoscalingGroupController(
 		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory, ae)
 
+	metricsBackendController := controller.NewMetricsBackend(
+		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory)
+
 	stopCh := make(chan struct{})
 	kubeInformerFactory.Start(stopCh)
 	cerebralInformerFactory.Start(stopCh)
 
-	if err = autoscalingGroupController.Run(1, stopCh); err != nil {
-		log.Fatalf("Error running controller: %s", err.Error())
-	}
+	go func() {
+		if err := autoscalingGroupController.Run(1, stopCh); err != nil {
+			log.Fatalf("Error running AutoscalingGroup controller: %s", err.Error())
+		}
+	}()
+
+	go func() {
+		if err := metricsBackendController.Run(1, stopCh); err != nil {
+			log.Fatalf("Error running MetricsBackend controller: %s", err.Error())
+		}
+	}()
+
+	<-stopCh
+	log.Fatal("There was an error while running the controllers")
 }
 
 // determineConfig determines if we are running in a cluster or outside

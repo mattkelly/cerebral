@@ -192,7 +192,7 @@ func TestGetNodeExporterPodIPsOnNodes(t *testing.T) {
 
 	backend.podLister = fullPodLister
 
-	nodes := []corev1.Node{promNode0, promNode1}
+	nodes := []*corev1.Node{&promNode0, &promNode1}
 
 	ips, err = backend.getNodeExporterPodIPsOnNodes(nodes)
 
@@ -207,7 +207,7 @@ func TestGetNodeExporterPodIPsOnNodes(t *testing.T) {
 	assert.Empty(t, ips, "no nodes with full pod cache --> no IPs")
 
 	// Add another node which is not running exporter
-	nodes = []corev1.Node{promNode0, promNode1, otherNode0}
+	nodes = []*corev1.Node{&promNode0, &promNode1, &otherNode0}
 	ips, err = backend.getNodeExporterPodIPsOnNodes(nodes)
 	assert.Error(t, err, "not every node running node exporter")
 }

@@ -83,7 +83,7 @@ func NewClient(address string, podLister corelistersv1.PodLister) (metrics.Backe
 }
 
 // GetValue implements the metrics.Backend interface
-func (b Backend) GetValue(metric string, configuration map[string]string, nodes []corev1.Node) (float64, error) {
+func (b Backend) GetValue(metric string, configuration map[string]string, nodes []*corev1.Node) (float64, error) {
 	podIPs, err := b.getNodeExporterPodIPsOnNodes(nodes)
 	if err != nil {
 		return 0, errors.Wrapf(err, "getting Prometheus node exporter pod IPs for metric %s", metric)
@@ -103,7 +103,7 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodes 
 	}
 }
 
-func (b Backend) getNodeExporterPodIPsOnNodes(nodes []corev1.Node) ([]string, error) {
+func (b Backend) getNodeExporterPodIPsOnNodes(nodes []*corev1.Node) ([]string, error) {
 	var podIPs []string
 
 	// TODO we should rethink how we do all of the below, potentially using b.Targets()
