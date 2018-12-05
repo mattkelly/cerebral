@@ -52,7 +52,7 @@ type AutoscalingGroupSpec struct {
 	Policies        []string          `json:"policies"`
 	Engine          string            `json:"engine"`
 	CooldownPeriod  int               `json:"cooldownPeriod"`
-	Suspended       bool              `json:"suspend"`
+	Suspended       bool              `json:"suspended"`
 	MinNodes        int               `json:"minNodes"`
 	MaxNodes        int               `json:"maxNodes"`
 	ScalingStrategy ScalingStrategy   `json:"scalingStrategy"`
@@ -105,8 +105,8 @@ type AutoscalingPolicySpec struct {
 
 // ScalingPolicy holds the policy configurations for scaling up and down
 type ScalingPolicy struct {
-	ScaleUp   ScalingPolicyConfiguration `json:"scaleUp"`
-	ScaleDown ScalingPolicyConfiguration `json:"scaleDown"`
+	ScaleUp   *ScalingPolicyConfiguration `json:"scaleUp,omitempty"`
+	ScaleDown *ScalingPolicyConfiguration `json:"scaleDown,omitempty"`
 }
 
 // A ScalingPolicyConfiguration defines the criterion for triggering a scale event
