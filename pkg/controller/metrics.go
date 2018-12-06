@@ -257,8 +257,6 @@ func (c *MetricsController) enqueueASGsForAutoscalingPolicy(obj interface{}) {
 	for _, asg := range asgs {
 		for _, p := range asg.Spec.Policies {
 			if p == asp.ObjectMeta.Name {
-				log.Debugf("%s: enqueuing AutoscalingGroup %q for AutoscalingPolicy %q",
-					metricsControllerName, asg.ObjectMeta.Name, asp.ObjectMeta.Name)
 				c.enqueueAutoscalingGroup(asg)
 			}
 		}
@@ -297,23 +295,7 @@ func (c *MetricsController) syncHandler(key string) error {
 		return nil
 	}
 
-	if len(asg.Spec.Policies) == 0 {
-		log.Warnf("%s: AutoscalingGroup %q doesn't have any policies - skipping", metricsControllerName, asgName)
-		return nil
-	}
-
-	// Get nodes associated with this AutoscalingGroup using the node selector
-	selector := getNodesLabelSelector(asg.Spec.NodeSelector)
-	nodes, err := c.nodeLister.List(selector)
-	if err != nil {
-		return errors.Wrapf(err, "listing nodes for AutoscalingGroup %q", asg.ObjectMeta.Name)
-	}
-
-	stopCh := make(chan struct{})
-	mgr := newPollManager(asg, stopCh)
-
-	// TODO it would be better if the manager itself created all of these, but it's easier to just
-	// do it here for now :(
+	asps := make([]*cerebralv1alpha1.AutoscalingPolicy, 0)
 	for _, aspName := range asg.Spec.Policies {
 		asp, err := c.aspLister.Get(aspName)
 		if err != nil {
@@ -325,17 +307,26 @@ func (c *MetricsController) syncHandler(key string) error {
 			return err
 		}
 
-		aspCopy := asp.DeepCopy()
-		p := newMetricPoller(*aspCopy, nodes)
-		mgr.addPoller(p)
+		// Let's make a copy to be safe; don't want to modify cache down the line somewhere
+		asps = append(asps, asp.DeepCopy())
 	}
 
-	c.pollManagers[asgName] = mgr
+	if len(asps) == 0 {
+		log.Warnf("%s: No valid policies found for AutoscalingGroup %q - skipping", metricsControllerName, asgName)
+		return nil
+	}
+
+	// TODO pass scaleRequestCh from engine loop
+	scaleRequestCh := make(chan struct{})
+	stopCh := make(chan struct{})
+	c.pollManagers[asgName] = newPollManager(asgName, asps, asg.Spec.NodeSelector, scaleRequestCh, stopCh)
 
 	go func() {
-		log.Debugf("Starting poll manager for AutoscalingGroup %q", asgName)
-		if err := mgr.run(); err != nil {
+		log.Infof("Starting poll manager for AutoscalingGroup %q", asgName)
+
+		if err := c.pollManagers[asgName].run(); err != nil {
 			// Handle unexpected failures in the poller simply by requeueing the ASG so it tries again
+			// The ASG may be out of date at this point, but it doesn't matter
 			log.Errorf("Poll manager for AutoscalingGroup %q died: %s", asgName, err)
 			c.enqueueAutoscalingGroup(asg)
 		}

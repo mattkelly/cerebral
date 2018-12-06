@@ -29,6 +29,7 @@ import (
 	cinformers "github.com/containership/cerebral/pkg/client/informers/externalversions"
 	clisters "github.com/containership/cerebral/pkg/client/listers/cerebral.containership.io/v1alpha1"
 	"github.com/containership/cerebral/pkg/events"
+	"github.com/containership/cerebral/pkg/nodeutil"
 
 	"github.com/pkg/errors"
 )
@@ -318,7 +319,7 @@ func (agc *AutoscalingGroupController) syncHandler(key string) error {
 		return nil
 	}
 
-	ns := getNodesLabelSelector(autoscalingGroup.Spec.NodeSelector)
+	ns := nodeutil.GetNodesLabelSelector(autoscalingGroup.Spec.NodeSelector)
 	// get nodes associated with autoscaling group using the node selector
 	nodes, _ := agc.nodeLister.List(ns)
 	numNodes := len(nodes)
@@ -366,4 +367,24 @@ func (agc *AutoscalingGroupController) updateAutoscalingGroupStatus(autoscalingG
 	agCopy.Status.LastUpdatedAt = time.Now().Unix()
 	_, err := agc.cerebralclientset.CerebralV1alpha1().AutoscalingGroups().UpdateStatus(agCopy)
 	return err
+}
+
+// findAGsMatchingNodeLabels goes through each autoscaling group and checks to see if the AG
+// nodeSelector matches the node labels passed into the function returning all
+// AGs that match
+func findAGsMatchingNodeLabels(nodeLabels map[string]string, ags []*cerebralv1alpha1.AutoscalingGroup) []*cerebralv1alpha1.AutoscalingGroup {
+	matchingags := make([]*cerebralv1alpha1.AutoscalingGroup, 0)
+
+	for _, autoscalingGroup := range ags {
+		// create selector object from nodeSelector of AG
+		agselectors := nodeutil.GetNodesLabelSelector(autoscalingGroup.Spec.NodeSelector)
+
+		// check to see if the nodeSelector labels match the node labels that
+		// were passed in
+		if agselectors.Matches(labels.Set(nodeLabels)) {
+			matchingags = append(matchingags, autoscalingGroup)
+		}
+	}
+
+	return matchingags
 }

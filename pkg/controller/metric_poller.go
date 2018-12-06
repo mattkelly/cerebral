@@ -6,20 +6,22 @@ import (
 
 	"github.com/pkg/errors"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/containership/cluster-manager/pkg/log"
 
-	cerebralv1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
+	v1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
 	"github.com/containership/cerebral/pkg/metrics"
 	"github.com/containership/cerebral/pkg/operator"
 )
 
 type pollManager struct {
-	asg *cerebralv1alpha1.AutoscalingGroup
+	asgName string
+	asps    []*v1alpha1.AutoscalingPolicy
 
 	// Key is ASP name
 	pollers map[string]metricPoller
+
+	// TODO should be of type chan ScaleRequest
+	scaleRequestCh chan struct{}
 
 	stopCh chan struct{}
 }
@@ -30,15 +32,24 @@ type alert struct {
 	err       error
 }
 
-func newPollManager(asg *cerebralv1alpha1.AutoscalingGroup, stopCh chan struct{}) pollManager {
-	return pollManager{
-		asg:     asg,
-		stopCh:  stopCh,
-		pollers: make(map[string]metricPoller),
+func newPollManager(asgName string, asps []*v1alpha1.AutoscalingPolicy, nodeSelector map[string]string, scaleRequestCh, stopCh chan struct{}) pollManager {
+	mgr := pollManager{
+		asgName:        asgName,
+		asps:           asps,
+		pollers:        make(map[string]metricPoller),
+		scaleRequestCh: scaleRequestCh,
+		stopCh:         stopCh,
 	}
+
+	for _, asp := range asps {
+		p := newMetricPoller(asp, nodeSelector)
+		mgr.pollers[asp.ObjectMeta.Name] = p
+	}
+
+	return mgr
 }
 
-func (m *pollManager) run() error {
+func (m pollManager) run() error {
 	var wg sync.WaitGroup
 	alertCh := make(chan alert)
 
@@ -54,30 +65,30 @@ func (m *pollManager) run() error {
 				return errors.Wrapf(alert.err, "polling ASP")
 			}
 
-			log.Infof("alert received from ASP %s", alert.aspName)
+			// TODO forward scale request
+			log.Infof("Alert received from ASP %s in direction %s", alert.aspName, alert.direction)
 
 		case <-m.stopCh:
-			log.Infof("Poll manager for AutoscalingGroup %s shutdown requested", m.asg.ObjectMeta.Name)
+			log.Infof("Poll manager for AutoscalingGroup %s shutdown requested", m.asgName)
 			wg.Wait()
-			log.Infof("Poll manager for AutoscalingGroup %s shutdown success", m.asg.ObjectMeta.Name)
+			log.Infof("Poll manager for AutoscalingGroup %s shutdown success", m.asgName)
 			return nil
 		}
 	}
 }
 
 func (m *pollManager) addPoller(p metricPoller) {
-	m.pollers[p.asp.ObjectMeta.Name] = p
 }
 
 type metricPoller struct {
-	asp   cerebralv1alpha1.AutoscalingPolicy
-	nodes []*corev1.Node
+	asp          *v1alpha1.AutoscalingPolicy
+	nodeSelector map[string]string
 }
 
-func newMetricPoller(asp cerebralv1alpha1.AutoscalingPolicy, nodes []*corev1.Node) metricPoller {
+func newMetricPoller(asp *v1alpha1.AutoscalingPolicy, nodeSelector map[string]string) metricPoller {
 	return metricPoller{
-		asp:   asp,
-		nodes: nodes,
+		asp:          asp,
+		nodeSelector: nodeSelector,
 	}
 }
 
@@ -86,7 +97,7 @@ type alertState struct {
 	start  time.Time
 }
 
-func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-chan struct{}) error {
+func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-chan struct{}) {
 	defer wg.Done()
 
 	ticker := time.NewTicker(time.Duration(p.asp.Spec.PollInterval) * time.Second)
@@ -101,16 +112,16 @@ func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-cha
 			policyName := p.asp.ObjectMeta.Name
 			backend, err := metrics.Registry().Get(p.asp.Spec.MetricsBackend)
 			if err != nil {
+				err = errors.Wrapf(err, "metrics backend %q specified by policy %q is unavailable", p.asp.Spec.MetricsBackend, policyName)
 				alertCh <- alert{err: err}
-				return errors.Errorf("backend %q specified by ASP %q is unavailable",
-					p.asp.Spec.MetricsBackend, policyName)
+				return
 			}
 
-			val, err := backend.GetValue(p.asp.Spec.Metric, p.asp.Spec.MetricConfiguration, p.nodes)
+			val, err := backend.GetValue(p.asp.Spec.Metric, p.asp.Spec.MetricConfiguration, p.nodeSelector)
 			if err != nil {
+				err = errors.Wrapf(err, "getting metric %q for policy %q", p.asp.Spec.Metric, policyName)
 				alertCh <- alert{err: err}
-				return errors.Errorf("error getting metric %q for policy %q: %s",
-					p.asp.Spec.Metric, policyName, err)
+				return
 			}
 
 			log.Debugf("Poller for ASP %q got value %f", policyName, val)
@@ -122,7 +133,7 @@ func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-cha
 				op, err := operator.FromString(up.ComparisonOperator)
 				if err != nil {
 					alertCh <- alert{err: err}
-					return err
+					return
 				}
 
 				if !op.Evaluate(val, up.Threshold) {
@@ -130,10 +141,12 @@ func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-cha
 					continue
 				}
 
-				log.Info("Policy alerting!")
 				if upAlert.active {
 					if time.Now().Sub(upAlert.start) >= time.Duration(p.asp.Spec.SamplePeriod)*time.Second {
-						log.Info("******* Up policy should scale now!")
+						alertCh <- alert{
+							aspName:   p.asp.ObjectMeta.Name,
+							direction: "up",
+						}
 						upAlert.active = false
 					}
 				} else {
@@ -144,7 +157,7 @@ func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-cha
 
 		case <-stopCh:
 			log.Debugf("Poller for ASP %s shutting down", p.asp.ObjectMeta.Name)
-			return nil
+			return
 		}
 	}
 }
