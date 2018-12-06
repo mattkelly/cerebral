@@ -62,6 +62,7 @@ type MetricsController struct {
 
 	recorder record.EventRecorder
 
+	// Key is ASG name
 	pollManagers map[string]pollManager
 }
 
@@ -243,11 +244,15 @@ func (c *MetricsController) enqueueASGsForAutoscalingPolicy(obj interface{}) {
 		return
 	}
 
+	log.Debugf("%s: finding ASGs to enqueue for event triggered on ASP %q", metricsControllerName, asp.ObjectMeta.Name)
+
 	asgs, err := c.asgLister.List(labels.NewSelector())
 	if err != nil {
 		log.Errorf("%s: error getting AutoscalingGroups when node was enqueued: %s", metricsControllerName, err)
 		return
 	}
+
+	log.Debugf("%s: no ASGs for ASP %q, ignoring", metricsControllerName, asp.ObjectMeta.Name)
 
 	for _, asg := range asgs {
 		for _, p := range asg.Spec.Policies {
@@ -263,17 +268,17 @@ func (c *MetricsController) enqueueASGsForAutoscalingPolicy(obj interface{}) {
 // syncHandler observes the current state of the system and reconciles the metric pollers
 // associated with AutoscalingGroups and their referenced AutoscalingPolicies
 func (c *MetricsController) syncHandler(key string) error {
-	_, name, err := cache.SplitMetaNamespaceKey(key)
+	_, asgName, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
 		return nil
 	}
 
-	asg, err := c.asgLister.Get(name)
+	asg, err := c.asgLister.Get(asgName)
 	if err != nil {
 		if kubeerrors.IsNotFound(err) {
-			log.Infof("%s: AutoscalingGroup %s was deleted - cleaning up", metricsControllerName, name)
-			c.cleanupPollManagerForASG(name)
+			log.Infof("%s: AutoscalingGroup %s was deleted - cleaning up", metricsControllerName, asgName)
+			c.cleanupPollManagerForASG(asgName)
 			return nil
 		}
 
@@ -282,80 +287,74 @@ func (c *MetricsController) syncHandler(key string) error {
 
 	// TODO obviously this can be easily optimized by updating the underlying types
 	// instead of just shutting down, deleting, and recreating, but this works for now
-	if _, ok := c.pollManagers[name]; ok {
-		log.Debugf("%s: poll manager for %q already exists - it will be replaced", metricsControllerName, name)
-		c.cleanupPollManagerForASG(name)
+	if _, ok := c.pollManagers[asgName]; ok {
+		log.Debugf("%s: poll manager for %q already exists - it will be replaced", metricsControllerName, asgName)
+		c.cleanupPollManagerForASG(asgName)
 	}
 
 	if asg.Spec.Suspended {
-		log.Debugf("%s: AutoscalingGroup %q is suspended - skipping", metricsControllerName, name)
+		log.Infof("%s: AutoscalingGroup %q is suspended - skipping", metricsControllerName, asgName)
 		return nil
 	}
 
-	pollers := make(map[string]metricPoller)
-	for _, policy := range asg.Spec.Policies {
-		asp, err := c.aspLister.Get(policy)
+	if len(asg.Spec.Policies) == 0 {
+		log.Warnf("%s: AutoscalingGroup %q doesn't have any policies - skipping", metricsControllerName, asgName)
+		return nil
+	}
+
+	// Get nodes associated with this AutoscalingGroup using the node selector
+	selector := getNodesLabelSelector(asg.Spec.NodeSelector)
+	nodes, err := c.nodeLister.List(selector)
+	if err != nil {
+		return errors.Wrapf(err, "listing nodes for AutoscalingGroup %q", asg.ObjectMeta.Name)
+	}
+
+	stopCh := make(chan struct{})
+	mgr := newPollManager(asg, stopCh)
+
+	// TODO it would be better if the manager itself created all of these, but it's easier to just
+	// do it here for now :(
+	for _, aspName := range asg.Spec.Policies {
+		asp, err := c.aspLister.Get(aspName)
 		if err != nil {
 			if kubeerrors.IsNotFound(err) {
-				log.Warnf("AutoscalingPolicy %q specified by AutoscalingGroup %q does not exist - skipping", policy, name)
+				log.Warnf("AutoscalingPolicy %q specified by AutoscalingGroup %q does not exist - skipping", aspName, asgName)
 				continue
 			}
 
 			return err
 		}
 
-		p, err := c.newPollerForGroupPolicy(asg, asp)
-		if err != nil {
-			return errors.Wrapf(err, "constructing metric poller For ASG %s, ASP %s", name, asp.ObjectMeta.Name)
+		aspCopy := asp.DeepCopy()
+		p := newMetricPoller(*aspCopy, nodes)
+		mgr.addPoller(p)
+	}
+
+	c.pollManagers[asgName] = mgr
+
+	go func() {
+		log.Debugf("Starting poll manager for AutoscalingGroup %q", asgName)
+		if err := mgr.run(); err != nil {
+			// Handle unexpected failures in the poller simply by requeueing the ASG so it tries again
+			log.Errorf("Poll manager for AutoscalingGroup %q died: %s", asgName, err)
+			c.enqueueAutoscalingGroup(asg)
 		}
-
-		go func() {
-			if err := p.run(); err != nil {
-				// Handle unexpected failures in the poller simply by requeueing the ASG so it tries again
-				log.Errorf("Metric poller for AutoscalingGroup %q, AutoscalingPolicy %q died: %s", name, asp.ObjectMeta.Name, err)
-				c.enqueueAutoscalingGroup(asg)
-			}
-		}()
-
-		pollers[asp.ObjectMeta.Name] = p
-	}
-
-	c.pollManagers[name] = pollManager{
-		group:   asg,
-		pollers: pollers,
-	}
+	}()
 
 	return nil
 }
 
-func (c *MetricsController) cleanupPollManagerForASG(name string) {
+// Close any metric pollers associated with this ASG and its ASPs and
+// delete the poll manager from the map.
+func (c *MetricsController) cleanupPollManagerForASG(asgName string) {
 	var mgr pollManager
 	var ok bool
-	if mgr, ok = c.pollManagers[name]; !ok {
+	if mgr, ok = c.pollManagers[asgName]; !ok {
 		// Nothing to do
 		return
 	}
 
-	for _, p := range mgr.pollers {
-		close(p.stopCh)
-	}
+	close(mgr.stopCh)
 
-	delete(c.pollManagers, name)
-}
-
-func (c *MetricsController) newPollerForGroupPolicy(asg *cerebralv1alpha1.AutoscalingGroup, asp *cerebralv1alpha1.AutoscalingPolicy) (metricPoller, error) {
-	// get nodes associated with autoscaling group using the node selector
-	selector := getNodesLabelSelector(asg.Spec.NodeSelector)
-	nodes, err := c.nodeLister.List(selector)
-	if err != nil {
-		return metricPoller{}, errors.Wrapf(err, "listing nodes for AutoscalingGroup %q", asg.ObjectMeta.Name)
-	}
-
-	return metricPoller{
-		policy: asp,
-		nodes:  nodes,
-		// TODO get from engine
-		requestScale: make(chan struct{}),
-		stopCh:       make(chan struct{}),
-	}, nil
+	delete(c.pollManagers, asgName)
 }

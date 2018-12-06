@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -15,21 +16,69 @@ import (
 )
 
 type pollManager struct {
-	group *cerebralv1alpha1.AutoscalingGroup
+	asg *cerebralv1alpha1.AutoscalingGroup
 
-	// map ASP name --> poller
+	// Key is ASP name
 	pollers map[string]metricPoller
+
+	stopCh chan struct{}
+}
+
+type alert struct {
+	aspName   string
+	direction string
+	err       error
+}
+
+func newPollManager(asg *cerebralv1alpha1.AutoscalingGroup, stopCh chan struct{}) pollManager {
+	return pollManager{
+		asg:     asg,
+		stopCh:  stopCh,
+		pollers: make(map[string]metricPoller),
+	}
+}
+
+func (m *pollManager) run() error {
+	var wg sync.WaitGroup
+	alertCh := make(chan alert)
+
+	for _, p := range m.pollers {
+		wg.Add(1)
+		go p.run(&wg, alertCh, m.stopCh)
+	}
+
+	for {
+		select {
+		case alert := <-alertCh:
+			if alert.err != nil {
+				return errors.Wrapf(alert.err, "polling ASP")
+			}
+
+			log.Infof("alert received from ASP %s", alert.aspName)
+
+		case <-m.stopCh:
+			log.Infof("Poll manager for AutoscalingGroup %s shutdown requested", m.asg.ObjectMeta.Name)
+			wg.Wait()
+			log.Infof("Poll manager for AutoscalingGroup %s shutdown success", m.asg.ObjectMeta.Name)
+			return nil
+		}
+	}
+}
+
+func (m *pollManager) addPoller(p metricPoller) {
+	m.pollers[p.asp.ObjectMeta.Name] = p
 }
 
 type metricPoller struct {
-	policy *cerebralv1alpha1.AutoscalingPolicy
-	nodes  []*corev1.Node
+	asp   cerebralv1alpha1.AutoscalingPolicy
+	nodes []*corev1.Node
+}
 
-	requestScale chan struct{}
-	stopCh       chan struct{}
-
-	upAlert   alertState
-	downAlert alertState
+func newMetricPoller(asp cerebralv1alpha1.AutoscalingPolicy, nodes []*corev1.Node) metricPoller {
+	return metricPoller{
+		asp:   asp,
+		nodes: nodes,
+	}
 }
 
 type alertState struct {
@@ -37,75 +86,64 @@ type alertState struct {
 	start  time.Time
 }
 
-func (p *metricPoller) run() error {
-	ticker := time.NewTicker(time.Duration(p.policy.Spec.PollInterval) * time.Second)
+func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-chan struct{}) error {
+	defer wg.Done()
+
+	ticker := time.NewTicker(time.Duration(p.asp.Spec.PollInterval) * time.Second)
+
+	log.Debugf("Poller for ASP %s is ready", p.asp.ObjectMeta.Name)
+
+	var upAlert /*, downAlert */ alertState
 
 	for {
 		select {
 		case <-ticker.C:
-			policyName := p.policy.ObjectMeta.Name
-			backend, err := metrics.Registry().Get(p.policy.Spec.MetricsBackend)
+			policyName := p.asp.ObjectMeta.Name
+			backend, err := metrics.Registry().Get(p.asp.Spec.MetricsBackend)
 			if err != nil {
-				return errors.Errorf("backend %q specified by policy %q is unavailable",
-					p.policy.Spec.MetricsBackend, policyName)
+				alertCh <- alert{err: err}
+				return errors.Errorf("backend %q specified by ASP %q is unavailable",
+					p.asp.Spec.MetricsBackend, policyName)
 			}
 
-			val, err := backend.GetValue(p.policy.Spec.Metric, p.policy.Spec.MetricConfiguration, p.nodes)
+			val, err := backend.GetValue(p.asp.Spec.Metric, p.asp.Spec.MetricConfiguration, p.nodes)
 			if err != nil {
+				alertCh <- alert{err: err}
 				return errors.Errorf("error getting metric %q for policy %q: %s",
-					p.policy.Spec.Metric, policyName, err)
+					p.asp.Spec.Metric, policyName, err)
 			}
 
-			log.Debugf("Poller for policy %q got val %f", policyName, val)
+			log.Debugf("Poller for ASP %q got value %f", policyName, val)
 
 			// Check for scale up alerts
-			up := p.policy.Spec.ScalingPolicy.ScaleUp
+			// TODO refactor to easily check scale down alerts as well
+			up := p.asp.Spec.ScalingPolicy.ScaleUp
 			if up != nil {
 				op, err := operator.FromString(up.ComparisonOperator)
 				if err != nil {
+					alertCh <- alert{err: err}
 					return err
 				}
 
-				if op.Evaluate(val, up.Threshold) {
-					log.Info("Up policy alerting!")
-					alert := &p.upAlert
-					if alert.active {
-						if time.Now().Sub(alert.start) >= time.Duration(p.policy.Spec.SamplePeriod)*time.Second {
-							log.Info("******* Up policy should scale now!")
-							alert.active = false
-						}
-					} else {
-						alert.start = time.Now()
-						alert.active = true
+				if !op.Evaluate(val, up.Threshold) {
+					// Nothing to do
+					continue
+				}
+
+				log.Info("Policy alerting!")
+				if upAlert.active {
+					if time.Now().Sub(upAlert.start) >= time.Duration(p.asp.Spec.SamplePeriod)*time.Second {
+						log.Info("******* Up policy should scale now!")
+						upAlert.active = false
 					}
+				} else {
+					upAlert.start = time.Now()
+					upAlert.active = true
 				}
 			}
 
-			// Check for scale down alerts
-			down := p.policy.Spec.ScalingPolicy.ScaleDown
-			if down != nil {
-				op, err := operator.FromString(down.ComparisonOperator)
-				if err != nil {
-					return err
-				}
-
-				if op.Evaluate(val, down.Threshold) {
-					log.Info("Down policy alerting!")
-					alert := &p.downAlert
-					if alert.active {
-						if time.Now().Sub(alert.start) >= time.Duration(p.policy.Spec.SamplePeriod)*time.Second {
-							log.Info("******* Down policy should scale now!")
-							alert.active = false
-						}
-					} else {
-						alert.start = time.Now()
-						alert.active = true
-					}
-				}
-			}
-
-		case <-p.stopCh:
-			log.Debugf("Poller for policy %s shutting down", p.policy.ObjectMeta.Name)
+		case <-stopCh:
+			log.Debugf("Poller for ASP %s shutting down", p.asp.ObjectMeta.Name)
 			return nil
 		}
 	}
