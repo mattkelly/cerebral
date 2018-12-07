@@ -25,6 +25,8 @@ spec:
             - metricsBackend
             - metric
             - scalingPolicy
+            - pollInterval
+            - samplePeriod
           properties:
             metricsBackend:
               type: string
@@ -43,10 +45,13 @@ spec:
                       format: float
                     comparisonOperator:
                       type: string
+                      enum: [ ">", "<", ">=", "<=", "==", "!=" ]
                     adjustmentType:
                       type: string
+                      enum: [ "absolute", "percent" ]
                     adjustmentValue:
                       type: integer
+                      minimum: 0
                 scaleDown:
                   type: object
                   properties:
@@ -55,11 +60,16 @@ spec:
                       format: float
                     comparisonOperator:
                       type: string
+                      enum: [ ">", "<", ">=", "<=", "==", "!=" ]
                     adjustmentType:
                       type: string
+                      enum: [ "absolute", "percent" ]
                     adjustmentValue:
                       type: integer
+                      minimum: 0
             pollInterval:
               type: integer
+              minimum: 0
             samplePeriod:
               type: integer
+              minimum: 0
