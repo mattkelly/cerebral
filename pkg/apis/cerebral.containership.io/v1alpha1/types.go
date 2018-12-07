@@ -114,7 +114,7 @@ type ScalingPolicyConfiguration struct {
 	Threshold          float64 `json:"threshold"`
 	ComparisonOperator string  `json:"comparisonOperator"`
 	AdjustmentType     string  `json:"adjustmentType"`
-	AdjustmentValue    int     `json:"adjustmentValue"`
+	AdjustmentValue    float64 `json:"adjustmentValue"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
