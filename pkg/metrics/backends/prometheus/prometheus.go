@@ -176,7 +176,7 @@ func (b Backend) performQuery(query string) (float64, error) {
 }
 
 func buildCPUQuery(instanceIPs []string, configuration map[string]string) (string, error) {
-	config := cpuMetricConfiguration{}
+	config := metricConfiguration{}
 	if err := config.defaultAndValidate(configuration); err != nil {
 		return "", errors.Wrap(err, "validating configuration")
 	}

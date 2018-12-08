@@ -54,8 +54,11 @@ var validNodeCPUMetricNames = []string{
 	"node_cpu",               // For Prometheus older than 0.16.0
 }
 
-// Default to latest supported name
-var defaultNodeCPUMetricName = validNodeCPUMetricNames[0]
+// Default to the older metric name for now, since Containership CKE clusters
+// are still launching with an older version for now.
+// TODO check the node exporter image version, handle this automatically, and
+// remove this config option.
+var defaultNodeCPUMetricName = validNodeCPUMetricNames[1]
 
 // TODO consider splitting into multiple types instead of overloading this
 // single struct and ignoring irrelevant fields
@@ -72,10 +75,6 @@ type metricConfiguration struct {
 	// -- Not user-specifiable
 	// Unfortunately we're required to export these fields for use in templates
 	InstancesRegex string
-}
-
-type cpuMetricConfiguration struct {
-	metricConfiguration
 }
 
 // defaults and validates the metricConfiguration. Intended to be called with an

@@ -27,6 +27,14 @@ func TestDefaultAndValidate(t *testing.T) {
 	assert.NoError(t, err, "good config")
 	assert.Equal(t, "max", c.Aggregation, "aggregation not defaulted if provided")
 	assert.Equal(t, "5m", c.Range, "range not defaulted if provided")
+	assert.Equal(t, defaultNodeCPUMetricName, c.NodeCPUMetricName, "cpu metric name defaulted if not provided")
+
+	c = metricConfiguration{}
+	err = c.defaultAndValidate(map[string]string{
+		"cpuMetricName": "node_cpu",
+	})
+	assert.NoError(t, err, "good config")
+	assert.Equal(t, "node_cpu", c.NodeCPUMetricName, "cpu metric name not defaulted if provided")
 
 	c = metricConfiguration{}
 	err = c.defaultAndValidate(map[string]string{
@@ -46,7 +54,15 @@ func TestDefaultAndValidate(t *testing.T) {
 	err = c.defaultAndValidate(map[string]string{
 		"aggregation":   "max",
 		"range":         "1m",
-		"cpuMetricName": "1m",
+		"cpuMetricName": "bad",
+	})
+	assert.Error(t, err, "bad CPU metric name")
+
+	c = metricConfiguration{}
+	err = c.defaultAndValidate(map[string]string{
+		"aggregation":   "max",
+		"range":         "1m",
+		"cpuMetricName": "bad",
 	})
 	assert.Error(t, err, "bad CPU metric name")
 }
