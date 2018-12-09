@@ -50,7 +50,8 @@ spec:
                       type: string
                       enum: [ "absolute", "percent" ]
                     adjustmentValue:
-                      type: integer
+                      type: number
+                      format: float
                       minimum: 0
                 scaleDown:
                   type: object
@@ -65,7 +66,8 @@ spec:
                       type: string
                       enum: [ "absolute", "percent" ]
                     adjustmentValue:
-                      type: integer
+                      type: number
+                      format: float
                       minimum: 0
             pollInterval:
               type: integer
