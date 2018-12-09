@@ -55,6 +55,17 @@ const (
 	adjustmentTypePercent
 )
 
+func (a adjustmentType) String() string {
+	switch a {
+	case adjustmentTypeAbsolute:
+		return "absolute"
+	case adjustmentTypePercent:
+		return "percent"
+	}
+
+	return "unknown"
+}
+
 func adjustmentTypeFromString(s string) (adjustmentType, error) {
 	switch s {
 	case "absolute":

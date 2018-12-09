@@ -1,25 +1,32 @@
 package controller
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/pkg/errors"
 
+	corev1 "k8s.io/api/core/v1"
+
+	"k8s.io/client-go/tools/record"
+
 	"github.com/containership/cluster-manager/pkg/log"
 
 	"github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
+	"github.com/containership/cerebral/pkg/events"
 )
 
 type pollManager struct {
 	asgName string
-	asps    []*v1alpha1.AutoscalingPolicy
 
-	// Key is ASP name
+	// Keys are ASP name
+	asps    map[string]*v1alpha1.AutoscalingPolicy
 	pollers map[string]metricPoller
 
-	scaleRequestCh chan<- ScaleRequest
+	recorder record.EventRecorder
 
-	stopCh chan struct{}
+	scaleRequestCh chan<- ScaleRequest
+	stopCh         chan struct{}
 }
 
 type alert struct {
@@ -31,12 +38,14 @@ type alert struct {
 	err error
 }
 
-func newPollManager(asgName string, asps []*v1alpha1.AutoscalingPolicy, nodeSelector map[string]string,
+func newPollManager(asgName string, asps map[string]*v1alpha1.AutoscalingPolicy, nodeSelector map[string]string,
+	recorder record.EventRecorder,
 	scaleRequestCh chan<- ScaleRequest, stopCh chan struct{}) pollManager {
 	mgr := pollManager{
 		asgName:        asgName,
 		asps:           asps,
 		pollers:        make(map[string]metricPoller),
+		recorder:       recorder,
 		scaleRequestCh: scaleRequestCh,
 		stopCh:         stopCh,
 	}
@@ -67,6 +76,18 @@ func (m pollManager) run() error {
 				return errors.Wrapf(alert.err, "polling metrics for ASP")
 			}
 
+			asp := m.asps[alert.aspName]
+
+			if alert.direction == scaleDirectionUp {
+				m.recorder.Event(asp, corev1.EventTypeNormal, events.ScaleUpAlerted,
+					fmt.Sprintf("alert triggered to scale up by %.2f (%s)",
+						alert.adjustmentValue, alert.adjustmentType.String()))
+			} else {
+				m.recorder.Event(asp, corev1.EventTypeNormal, events.ScaleDownAlerted,
+					fmt.Sprintf("alert triggered to scale down by %.2f (%s)",
+						alert.adjustmentValue, alert.adjustmentType.String()))
+			}
+
 			m.scaleRequestCh <- ScaleRequest{
 				asgName:         m.asgName,
 				direction:       alert.direction,
@@ -83,6 +104,8 @@ func (m pollManager) run() error {
 
 		case <-m.stopCh:
 			log.Infof("Poll manager for AutoscalingGroup %s shutdown requested", m.asgName)
+			// All pollers share the manager's stop chan so no need to
+			// stop them explicitly
 			wg.Wait()
 			log.Infof("Poll manager for AutoscalingGroup %s shutdown success", m.asgName)
 			return nil

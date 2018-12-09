@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+
+	corev1 "k8s.io/api/core/v1"
+
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -11,7 +15,10 @@ import (
 
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/containership/cluster-manager/pkg/log"
@@ -20,8 +27,6 @@ import (
 	cerebral "github.com/containership/cerebral/pkg/client/clientset/versioned"
 	cinformers "github.com/containership/cerebral/pkg/client/informers/externalversions"
 	clisters "github.com/containership/cerebral/pkg/client/listers/cerebral.containership.io/v1alpha1"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -49,6 +54,8 @@ type MetricsController struct {
 
 	workqueue workqueue.RateLimitingInterface
 
+	recorder record.EventRecorder
+
 	// Key is ASG name
 	pollManagers   map[string]pollManager
 	scaleRequestCh chan<- ScaleRequest
@@ -69,6 +76,15 @@ func NewMetrics(kubeclientset kubernetes.Interface,
 		pollManagers:      make(map[string]pollManager),
 		scaleRequestCh:    scaleRequestCh,
 	}
+
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(log.Infof)
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{
+		Interface: kubeclientset.CoreV1().Events(""),
+	})
+	c.recorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{
+		Component: controllerName,
+	})
 
 	asgInformer := cInformerFactory.Cerebral().V1alpha1().AutoscalingGroups()
 	aspInformer := cInformerFactory.Cerebral().V1alpha1().AutoscalingPolicies()
@@ -269,7 +285,7 @@ func (c *MetricsController) syncHandler(key string) error {
 		return nil
 	}
 
-	asps := make([]*cerebralv1alpha1.AutoscalingPolicy, 0)
+	asps := make(map[string]*cerebralv1alpha1.AutoscalingPolicy)
 	for _, aspName := range asg.Spec.Policies {
 		asp, err := c.aspLister.Get(aspName)
 		if err != nil {
@@ -282,7 +298,7 @@ func (c *MetricsController) syncHandler(key string) error {
 		}
 
 		// Let's make a copy to be safe; don't want to modify cache down the line somewhere
-		asps = append(asps, asp.DeepCopy())
+		asps[aspName] = asp.DeepCopy()
 	}
 
 	if len(asps) == 0 {
@@ -291,7 +307,7 @@ func (c *MetricsController) syncHandler(key string) error {
 	}
 
 	stopCh := make(chan struct{})
-	c.pollManagers[asgName] = newPollManager(asgName, asps, asg.Spec.NodeSelector, c.scaleRequestCh, stopCh)
+	c.pollManagers[asgName] = newPollManager(asgName, asps, asg.Spec.NodeSelector, c.recorder, c.scaleRequestCh, stopCh)
 
 	go func() {
 		log.Infof("Starting poll manager for AutoscalingGroup %q", asgName)
