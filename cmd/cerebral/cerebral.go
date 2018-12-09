@@ -11,6 +11,7 @@ import (
 
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/containership/cerebral/pkg/autoscalingengine/containership"
 	"github.com/containership/cerebral/pkg/buildinfo"
 	cerebral "github.com/containership/cerebral/pkg/client/clientset/versioned"
+	cerebralscheme "github.com/containership/cerebral/pkg/client/clientset/versioned/scheme"
 	cinformers "github.com/containership/cerebral/pkg/client/informers/externalversions"
 	"github.com/containership/cerebral/pkg/controller"
 
@@ -51,6 +53,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create Cerebral clientset: %+v", err)
 	}
+
+	// Add cerebral scheme so we can record events
+	cerebralscheme.AddToScheme(scheme.Scheme)
 
 	kubeInformerFactory := informers.NewSharedInformerFactory(kubeclientset, 30*time.Second)
 	cerebralInformerFactory := cinformers.NewSharedInformerFactory(cerebralclientset, 30*time.Second)

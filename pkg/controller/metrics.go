@@ -9,14 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	corev1 "k8s.io/api/core/v1"
-
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/containership/cluster-manager/pkg/log"
@@ -54,8 +49,6 @@ type MetricsController struct {
 
 	workqueue workqueue.RateLimitingInterface
 
-	recorder record.EventRecorder
-
 	// Key is ASG name
 	pollManagers   map[string]pollManager
 	scaleRequestCh chan<- ScaleRequest
@@ -76,15 +69,6 @@ func NewMetrics(kubeclientset kubernetes.Interface,
 		pollManagers:      make(map[string]pollManager),
 		scaleRequestCh:    scaleRequestCh,
 	}
-
-	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(log.Infof)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{
-		Interface: kubeclientset.CoreV1().Events(""),
-	})
-	c.recorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{
-		Component: metricsControllerName,
-	})
 
 	asgInformer := cInformerFactory.Cerebral().V1alpha1().AutoscalingGroups()
 	aspInformer := cInformerFactory.Cerebral().V1alpha1().AutoscalingPolicies()

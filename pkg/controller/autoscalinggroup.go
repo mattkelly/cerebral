@@ -13,18 +13,14 @@ import (
 
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/containership/cluster-manager/pkg/log"
 
 	cerebralv1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
 	cerebral "github.com/containership/cerebral/pkg/client/clientset/versioned"
-	cerebralscheme "github.com/containership/cerebral/pkg/client/clientset/versioned/scheme"
 	cinformers "github.com/containership/cerebral/pkg/client/informers/externalversions"
 	clisters "github.com/containership/cerebral/pkg/client/listers/cerebral.containership.io/v1alpha1"
 	"github.com/containership/cerebral/pkg/nodeutil"
@@ -59,9 +55,6 @@ type AutoscalingGroupController struct {
 	agSynced cache.InformerSynced
 
 	workqueue workqueue.RateLimitingInterface
-	// recorder is an event recorder for recording Event resources to the
-	// Kubernetes API.
-	recorder record.EventRecorder
 
 	scaleRequestCh chan<- ScaleRequest
 }
@@ -81,16 +74,6 @@ func NewAutoscalingGroupController(kubeclientset kubernetes.Interface,
 		workqueue:         workqueue.NewNamedRateLimitingQueue(rateLimiter, controllerName),
 		scaleRequestCh:    scaleRequestCh,
 	}
-
-	cerebralscheme.AddToScheme(scheme.Scheme)
-	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(log.Infof)
-	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{
-		Interface: kubeclientset.CoreV1().Events(""),
-	})
-	agc.recorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{
-		Component: controllerName,
-	})
 
 	nodeInformer := kubeInformerFactory.Core().V1().Nodes()
 	agInformer := cInformerFactory.Cerebral().V1alpha1().AutoscalingGroups()

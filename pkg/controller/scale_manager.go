@@ -1,16 +1,23 @@
 package controller
 
 import (
+	"fmt"
 	"math"
 	"time"
 
 	"github.com/pkg/errors"
 
+	corev1 "k8s.io/api/core/v1"
+
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
+
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/containership/cluster-manager/pkg/log"
 
@@ -19,6 +26,7 @@ import (
 	cerebral "github.com/containership/cerebral/pkg/client/clientset/versioned"
 	cinformers "github.com/containership/cerebral/pkg/client/informers/externalversions"
 	clisters "github.com/containership/cerebral/pkg/client/listers/cerebral.containership.io/v1alpha1"
+	"github.com/containership/cerebral/pkg/events"
 	"github.com/containership/cerebral/pkg/nodeutil"
 )
 
@@ -70,6 +78,8 @@ type ScaleManager struct {
 	nodeLister corelistersv1.NodeLister
 	nodeSynced cache.InformerSynced
 
+	recorder record.EventRecorder
+
 	scaleRequestCh chan ScaleRequest
 }
 
@@ -102,6 +112,15 @@ func NewScaleManager(
 		cerebralclientset: cerebralclientset,
 		scaleRequestCh:    make(chan ScaleRequest),
 	}
+
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(log.Infof)
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{
+		Interface: kubeclientset.CoreV1().Events(""),
+	})
+	m.recorder = eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{
+		Component: controllerName,
+	})
 
 	asgInformer := cInformerFactory.Cerebral().V1alpha1().AutoscalingGroups()
 	nodeInformer := kubeInformerFactory.Core().V1().Nodes()
@@ -157,12 +176,13 @@ func (m *ScaleManager) handleScaleRequest(req ScaleRequest) error {
 	}
 
 	scaled, err := m.handleScaleRequestForASG(asg, req)
-	if !scaled {
-		log.Infof("%s: scale request succeeded but no action was taken - will not enter cooldown", scaleManagerName)
-		return nil
+	if err != nil {
+		return err
 	}
 
-	log.Infof("%s: scale initiated successfully", scaleManagerName)
+	if !scaled {
+		return nil
+	}
 
 	// TODO instead of just returning an error here, we should consider blocking further
 	// scale requests for this ASG while we try to update the status
@@ -178,12 +198,12 @@ func (m *ScaleManager) handleScaleRequestForASG(asg *cerebralv1alpha1.Autoscalin
 	if asg.Spec.Suspended {
 		// This should only really happen if there's an outstanding scale request
 		// when an actor edits the CR to suspend it
-		log.Infof("%s: ignoring scale request for AutoscalingGroup %q because it's currently suspended", req.asgName)
+		m.recorder.Event(asg, corev1.EventTypeNormal, events.ScaleIgnored, "AutoscalingGroup is suspended")
 		return false, nil
 	}
 
 	if !req.ignoreCooldown && isCoolingDown(asg) {
-		log.Infof("%s: ignoring scale request for AutoscalingGroup %q because it's cooling down", scaleManagerName, req.asgName)
+		m.recorder.Event(asg, corev1.EventTypeNormal, events.ScaleIgnored, "AutoscalingGroup is cooling down")
 		return false, nil
 	}
 
@@ -203,16 +223,47 @@ func (m *ScaleManager) handleScaleRequestForASG(asg *cerebralv1alpha1.Autoscalin
 		req.direction, req.adjustmentType, req.adjustmentValue)
 
 	if currNodeCount == targetNodeCount {
-		// The scale operation would be a noop, so just ignore it
+		// The scale operation would be a noop, so just ignore it but record
+		// a warning event if this case is interesting
+		if req.direction == scaleDirectionUp && targetNodeCount == asg.Spec.MaxNodes {
+			m.recorder.Event(asg, corev1.EventTypeWarning, events.ScaleIgnored,
+				fmt.Sprintf("scale %s operation would exceed upper bound of %d nodes",
+					req.direction.String(), asg.Spec.MaxNodes))
+		} else if req.direction == scaleDirectionDown && targetNodeCount == asg.Spec.MinNodes {
+			m.recorder.Event(asg, corev1.EventTypeWarning, events.ScaleIgnored,
+				fmt.Sprintf("scale %s operation would exceed lower bound of %d nodes",
+					req.direction.String(), asg.Spec.MinNodes))
+		}
+
 		return false, nil
 	}
 
 	strategy := getAutoscalingGroupStrategy(req.direction, asg)
-	return engine.SetTargetNodeCount(asg.Spec.NodeSelector, targetNodeCount, strategy)
+
+	scaled, err := engine.SetTargetNodeCount(asg.Spec.NodeSelector, targetNodeCount, strategy)
+	if err != nil {
+		m.recorder.Event(asg, corev1.EventTypeWarning, events.ScaleError,
+			fmt.Sprintf("failed to scale: %s", err))
+		return false, err
+	}
+
+	if !scaled {
+		return false, nil
+	}
+
+	if req.direction == scaleDirectionUp {
+		m.recorder.Event(asg, corev1.EventTypeNormal, events.ScaledUp,
+			fmt.Sprintf("scaled up to %d nodes using strategy %q", targetNodeCount, strategy))
+	} else {
+		m.recorder.Event(asg, corev1.EventTypeNormal, events.ScaledDown,
+			fmt.Sprintf("scaled down to %d nodes using strategy %q", targetNodeCount, strategy))
+	}
+
+	return true, nil
 }
 
-func (m *ScaleManager) updateAutoscalingGroupStatus(autoscalingGroup *cerebralv1alpha1.AutoscalingGroup) error {
-	asgCopy := autoscalingGroup.DeepCopy()
+func (m *ScaleManager) updateAutoscalingGroupStatus(asg *cerebralv1alpha1.AutoscalingGroup) error {
+	asgCopy := asg.DeepCopy()
 	asgCopy.Status.LastUpdatedAt = time.Now().Unix()
 	_, err := m.cerebralclientset.CerebralV1alpha1().AutoscalingGroups().UpdateStatus(asgCopy)
 	return err
