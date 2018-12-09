@@ -46,11 +46,7 @@ var cpuQueryTemplate = template.Must(template.New("cpu").Parse(cpuQueryTemplateS
 // Average memory usage across the given nodes for the given range
 const memoryQueryTemplateString = `
 100 * {{.Aggregation}}(
-	1 - ((
-			avg_over_time(node_memory_MemFree{instance=~'{{.InstancesRegex}}'}[{{.Range}}])
-			  + avg_over_time(node_memory_Cached{instance=~'{{.InstancesRegex}}'}[{{.Range}}])
-			  + avg_over_time(node_memory_Buffers{instance=~'{{.InstancesRegex}}'}[{{.Range}}])
-		  )
+	1 - (avg_over_time(node_memory_MemAvailable{instance=~'{{.InstancesRegex}}'}[{{.Range}}])
 		  / avg_over_time(node_memory_MemTotal{instance=~'{{.InstancesRegex}}'}[{{.Range}}]))
 )`
 
