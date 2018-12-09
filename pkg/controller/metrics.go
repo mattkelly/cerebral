@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	corelistersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -53,24 +52,21 @@ type MetricsController struct {
 	aspLister clisters.AutoscalingPolicyLister
 	aspSynced cache.InformerSynced
 
-	// This controller does not listen on nodes, but it does need to keep a cache
-	// of nodes in order to select nodes for AutoscalingGroups and pass them around
-	nodeLister corelistersv1.NodeLister
-	nodeSynced cache.InformerSynced
-
 	workqueue workqueue.RateLimitingInterface
 
 	recorder record.EventRecorder
 
 	// Key is ASG name
-	pollManagers map[string]pollManager
+	pollManagers   map[string]pollManager
+	scaleRequestCh chan<- ScaleRequest
 }
 
 // NewMetrics constructs a new Metrics controller
 func NewMetrics(kubeclientset kubernetes.Interface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	cerebralclientset cerebral.Interface,
-	cInformerFactory cinformers.SharedInformerFactory) *MetricsController {
+	cInformerFactory cinformers.SharedInformerFactory,
+	scaleRequestCh chan<- ScaleRequest) *MetricsController {
 	rateLimiter := workqueue.NewItemExponentialFailureRateLimiter(metricsDelayBetweenRequeues, metricsMaxRequeues)
 
 	c := &MetricsController{
@@ -78,6 +74,7 @@ func NewMetrics(kubeclientset kubernetes.Interface,
 		cerebralclientset: cerebralclientset,
 		workqueue:         workqueue.NewNamedRateLimitingQueue(rateLimiter, metricsControllerName),
 		pollManagers:      make(map[string]pollManager),
+		scaleRequestCh:    scaleRequestCh,
 	}
 
 	eventBroadcaster := record.NewBroadcaster()
@@ -91,7 +88,6 @@ func NewMetrics(kubeclientset kubernetes.Interface,
 
 	asgInformer := cInformerFactory.Cerebral().V1alpha1().AutoscalingGroups()
 	aspInformer := cInformerFactory.Cerebral().V1alpha1().AutoscalingPolicies()
-	nodeInformer := kubeInformerFactory.Core().V1().Nodes()
 
 	log.Infof("%s: setting up event handlers", metricsControllerName)
 
@@ -130,9 +126,6 @@ func NewMetrics(kubeclientset kubernetes.Interface,
 	c.aspLister = aspInformer.Lister()
 	c.aspSynced = aspInformer.Informer().HasSynced
 
-	c.nodeLister = nodeInformer.Lister()
-	c.nodeSynced = nodeInformer.Informer().HasSynced
-
 	return c
 }
 
@@ -147,8 +140,7 @@ func (c *MetricsController) Run(numWorkers int, stopCh <-chan struct{}) error {
 	// Start the informer factories to begin populating the informer caches
 	log.Infof("Starting %s", metricsControllerName)
 
-	if ok := cache.WaitForCacheSync(stopCh,
-		c.asgSynced, c.aspSynced, c.nodeSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.asgSynced, c.aspSynced); !ok {
 		return errors.Errorf("%s: failed to wait for caches to sync", metricsControllerName)
 	}
 
@@ -314,10 +306,8 @@ func (c *MetricsController) syncHandler(key string) error {
 		return nil
 	}
 
-	// TODO pass scaleRequestCh from engine loop
-	scaleRequestCh := make(chan struct{})
 	stopCh := make(chan struct{})
-	c.pollManagers[asgName] = newPollManager(asgName, asps, asg.Spec.NodeSelector, scaleRequestCh, stopCh)
+	c.pollManagers[asgName] = newPollManager(asgName, asps, asg.Spec.NodeSelector, c.scaleRequestCh, stopCh)
 
 	go func() {
 		log.Infof("Starting poll manager for AutoscalingGroup %q", asgName)

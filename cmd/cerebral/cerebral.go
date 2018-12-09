@@ -57,18 +57,29 @@ func main() {
 
 	registerContainershipEngineOrDie(cerebralclientset)
 
-	autoscalingGroupController := controller.NewAutoscalingGroupController(
+	stopCh := make(chan struct{})
+	scaleMgr := controller.NewScaleManager(
 		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory)
+
+	autoscalingGroupController := controller.NewAutoscalingGroupController(
+		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory,
+		scaleMgr.ScaleRequestChan())
+
+	metricsController := controller.NewMetrics(
+		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory,
+		scaleMgr.ScaleRequestChan())
 
 	metricsBackendController := controller.NewMetricsBackend(
 		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory)
 
-	metricsController := controller.NewMetrics(
-		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory)
-
-	stopCh := make(chan struct{})
 	kubeInformerFactory.Start(stopCh)
 	cerebralInformerFactory.Start(stopCh)
+
+	go func() {
+		if err := scaleMgr.Run(stopCh); err != nil {
+			log.Fatalf("Error running scale manager: %s", err.Error())
+		}
+	}()
 
 	go func() {
 		if err := autoscalingGroupController.Run(1, stopCh); err != nil {
@@ -89,7 +100,7 @@ func main() {
 	}()
 
 	<-stopCh
-	log.Fatal("There was an error while running the controllers")
+	log.Fatal("There was an error while running the scale manager and controllers")
 }
 
 // determineConfig determines if we are running in a cluster or outside

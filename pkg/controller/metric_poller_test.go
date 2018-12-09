@@ -24,8 +24,8 @@ func TestNewMetricPoller(t *testing.T) {
 	assert.NotNil(t, p, "never nil")
 }
 
-func TestEvaluatePolicyConfiguration(t *testing.T) {
-	fired := evaluatePolicyConfiguration(nil, &alertState{}, time.Second, 0)
+func TestPolicyConfigurationShouldFireAlert(t *testing.T) {
+	fired := policyConfigurationShouldFireAlert(nil, &alertState{}, time.Second, 0)
 	assert.False(t, fired, "nil config is a noop")
 
 	alert := &alertState{active: false}
@@ -34,27 +34,27 @@ func TestEvaluatePolicyConfiguration(t *testing.T) {
 		ComparisonOperator: ">=",
 	}
 
-	fired = evaluatePolicyConfiguration(gteConfig, alert, 5*time.Second, 10)
+	fired = policyConfigurationShouldFireAlert(gteConfig, alert, 5*time.Second, 10)
 	assert.False(t, fired, "have not breached threshold")
 
 	alert = &alertState{active: true, startTime: time.Unix(0, 0)}
 	setTime(2)
-	fired = evaluatePolicyConfiguration(gteConfig, alert, 5*time.Second, 80)
+	fired = policyConfigurationShouldFireAlert(gteConfig, alert, 5*time.Second, 80)
 	assert.False(t, fired, "breached threshold but not long enough")
 
 	alert = &alertState{active: false}
 	setTime(2)
-	fired = evaluatePolicyConfiguration(gteConfig, alert, 5*time.Second, 80)
+	fired = policyConfigurationShouldFireAlert(gteConfig, alert, 5*time.Second, 80)
 	assert.False(t, fired, "breached threshold but not active")
 
 	alert = &alertState{active: true, startTime: time.Unix(0, 0)}
 	setTime(10)
-	fired = evaluatePolicyConfiguration(gteConfig, alert, 5*time.Second, 80)
+	fired = policyConfigurationShouldFireAlert(gteConfig, alert, 5*time.Second, 80)
 	assert.True(t, fired, "breached threshold for long enough")
 
 	alert = &alertState{active: false, startTime: time.Unix(0, 0)}
 	setTime(2)
-	fired = evaluatePolicyConfiguration(gteConfig, alert, 5*time.Second, 10)
+	fired = policyConfigurationShouldFireAlert(gteConfig, alert, 5*time.Second, 10)
 	assert.False(t, fired, "breached threshold but not long enough")
 
 	resetTime()

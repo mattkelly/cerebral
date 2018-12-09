@@ -23,14 +23,23 @@ type alertState struct {
 	startTime time.Time
 }
 
+var nowFunc = time.Now
+
+func (a *alertState) start() {
+	a.startTime = nowFunc()
+	a.active = true
+}
+
+func (a *alertState) shouldFire(samplePeriod time.Duration) bool {
+	return a.active && nowFunc().Sub(a.startTime) >= samplePeriod
+}
+
 func newMetricPoller(asp *v1alpha1.AutoscalingPolicy, nodeSelector map[string]string) metricPoller {
 	return metricPoller{
 		asp:          asp,
 		nodeSelector: nodeSelector,
 	}
 }
-
-var nowFunc = time.Now
 
 func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-chan struct{}) {
 	defer wg.Done()
@@ -42,8 +51,8 @@ func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-cha
 	metric := p.asp.Spec.Metric
 	metricConfig := p.asp.Spec.MetricConfiguration
 
-	var upAlert = &alertState{}
-	var downAlert = &alertState{}
+	upAlert := &alertState{}
+	downAlert := &alertState{}
 
 	ticker := time.NewTicker(pollInterval)
 	for {
@@ -65,23 +74,16 @@ func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-cha
 
 			log.Debugf("Poller for ASP %q got value %f", policyName, val)
 
-			// Check for scale up alerts
-			shouldAlertUp := evaluatePolicyConfiguration(
-				p.asp.Spec.ScalingPolicy.ScaleUp, upAlert, samplePeriod, val)
-			if shouldAlertUp {
-				alertCh <- alert{
-					aspName:   p.asp.ObjectMeta.Name,
-					direction: "up",
-				}
+			// Scale up alerts
+			upConfig := p.asp.Spec.ScalingPolicy.ScaleUp
+			if policyConfigurationShouldFireAlert(upConfig, upAlert, samplePeriod, val) {
+				p.fireAlert(alertCh, upConfig, scaleDirectionUp)
 			}
 
-			shouldAlertDown := evaluatePolicyConfiguration(
-				p.asp.Spec.ScalingPolicy.ScaleDown, downAlert, samplePeriod, val)
-			if shouldAlertDown {
-				alertCh <- alert{
-					aspName:   p.asp.ObjectMeta.Name,
-					direction: "down",
-				}
+			// Scale down alerts
+			downConfig := p.asp.Spec.ScalingPolicy.ScaleDown
+			if policyConfigurationShouldFireAlert(downConfig, downAlert, samplePeriod, val) {
+				p.fireAlert(alertCh, downConfig, scaleDirectionDown)
 			}
 
 		case <-stopCh:
@@ -91,7 +93,18 @@ func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-cha
 	}
 }
 
-func evaluatePolicyConfiguration(policy *v1alpha1.ScalingPolicyConfiguration,
+func (p *metricPoller) fireAlert(alertCh chan<- alert, policy *v1alpha1.ScalingPolicyConfiguration, dir scaleDirection) {
+	// Thanks to CRD validation, we can assume that this is valid
+	adjustmentType, _ := adjustmentTypeFromString(policy.AdjustmentType)
+	alertCh <- alert{
+		aspName:         p.asp.ObjectMeta.Name,
+		direction:       dir,
+		adjustmentType:  adjustmentType,
+		adjustmentValue: policy.AdjustmentValue,
+	}
+}
+
+func policyConfigurationShouldFireAlert(policy *v1alpha1.ScalingPolicyConfiguration,
 	alert *alertState, samplePeriod time.Duration, val float64) bool {
 	if policy == nil {
 		// Nothing to do
@@ -119,13 +132,4 @@ func evaluatePolicyConfiguration(policy *v1alpha1.ScalingPolicyConfiguration,
 	}
 
 	return false
-}
-
-func (a *alertState) start() {
-	a.startTime = nowFunc()
-	a.active = true
-}
-
-func (a *alertState) shouldFire(samplePeriod time.Duration) bool {
-	return a.active && nowFunc().Sub(a.startTime) >= samplePeriod
 }

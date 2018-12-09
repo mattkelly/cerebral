@@ -23,12 +23,10 @@ import (
 	"github.com/containership/cluster-manager/pkg/log"
 
 	cerebralv1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
-	"github.com/containership/cerebral/pkg/autoscalingengine"
 	cerebral "github.com/containership/cerebral/pkg/client/clientset/versioned"
 	cerebralscheme "github.com/containership/cerebral/pkg/client/clientset/versioned/scheme"
 	cinformers "github.com/containership/cerebral/pkg/client/informers/externalversions"
 	clisters "github.com/containership/cerebral/pkg/client/listers/cerebral.containership.io/v1alpha1"
-	"github.com/containership/cerebral/pkg/events"
 	"github.com/containership/cerebral/pkg/nodeutil"
 
 	"github.com/pkg/errors"
@@ -64,6 +62,8 @@ type AutoscalingGroupController struct {
 	// recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
 	recorder record.EventRecorder
+
+	scaleRequestCh chan<- ScaleRequest
 }
 
 // NewAutoscalingGroupController returns a new controller to watch
@@ -71,13 +71,15 @@ type AutoscalingGroupController struct {
 func NewAutoscalingGroupController(kubeclientset kubernetes.Interface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	cerebralclientset cerebral.Interface,
-	cInformerFactory cinformers.SharedInformerFactory) *AutoscalingGroupController {
+	cInformerFactory cinformers.SharedInformerFactory,
+	scaleRequestCh chan<- ScaleRequest) *AutoscalingGroupController {
 	rateLimiter := workqueue.NewItemExponentialFailureRateLimiter(delayBetweenRequeues, maxRequeues)
 
 	agc := &AutoscalingGroupController{
 		kubeclientset:     kubeclientset,
 		cerebralclientset: cerebralclientset,
 		workqueue:         workqueue.NewNamedRateLimitingQueue(rateLimiter, controllerName),
+		scaleRequestCh:    scaleRequestCh,
 	}
 
 	cerebralscheme.AddToScheme(scheme.Scheme)
@@ -248,41 +250,8 @@ func (agc *AutoscalingGroupController) enqueueAutoscalingGroup(obj interface{}) 
 		log.Error("Error enqueueing autoscaling group", err)
 		return
 	}
-	log.Info("added to workqueue ", key)
+	log.Debugf("%s: added %q to workqueue", controllerName, key)
 	agc.workqueue.AddRateLimited(key)
-}
-
-// getDesiredNodeCount returns curr if curr is between the min and max bounds,
-// if its below the bounds it will return min, if it's above the bounds it will
-// return max.
-func getDesiredNodeCount(curr, min, max int) int {
-	if curr < min {
-		return min
-	} else if curr > max {
-		return max
-	}
-
-	return curr
-}
-
-func isScaleUpEvent(curr, desired int) bool {
-	return curr < desired
-}
-
-func getAutoscalingGroupStrategy(scaleUp bool, ag cerebralv1alpha1.AutoscalingGroupSpec) string {
-	var strategy string
-	if scaleUp {
-		strategy = ag.ScalingStrategy.ScaleUp
-	} else {
-		strategy = ag.ScalingStrategy.ScaleDown
-	}
-
-	if strategy == "" {
-		// TODO: update this to reference the value provided by the associated AutoscalingEngine.
-		strategy = defaultAutoscalingStrategy
-	}
-
-	return strategy
 }
 
 // syncHandler surveys the state of the systems, checking to see that the current
@@ -309,49 +278,46 @@ func (agc *AutoscalingGroupController) syncHandler(key string) error {
 		return nil
 	}
 
-	engineName := autoscalingGroup.Spec.Engine
-	if !autoscalingengine.Registry().IsRegistered(engineName) {
-		return errors.Errorf("the AutoscalingEngine specified for the AutoscalingGroup '%s' is not registered", autoscalingGroup.Name)
-	}
-
 	ns := nodeutil.GetNodesLabelSelector(autoscalingGroup.Spec.NodeSelector)
 	// get nodes associated with autoscaling group using the node selector
-	nodes, _ := agc.nodeLister.List(ns)
+	nodes, err := agc.nodeLister.List(ns)
+	if err != nil {
+		return errors.Wrapf(err, "listing nodes for AutoscalingGroup %s", autoscalingGroup.Name)
+	}
+
 	numNodes := len(nodes)
 	log.Infof("Current number of nodes in autoscaling group '%s' : %d", autoscalingGroup.Name, numNodes)
 
-	desired := getDesiredNodeCount(numNodes, autoscalingGroup.Spec.MinNodes, autoscalingGroup.Spec.MaxNodes)
-	// If number of nodes is within threshold then nothing needs to change this
-	// and this can noop and should just return
-	if numNodes == desired {
+	delta, dir := determineScaleDeltaAndDirection(numNodes, autoscalingGroup.Spec.MinNodes, autoscalingGroup.Spec.MaxNodes)
+	if delta == 0 {
+		log.Debugf("%s: AutoscalingGroup %s is within bounds - ignoring", controllerName, autoscalingGroup.Name)
 		return nil
 	}
 
-	engine, err := autoscalingengine.Registry().Get(engineName)
+	// We'll record an actual event in the scale manager, but log here at least
+	log.Infof("AutoscalingGroup %s node count (%d) was not within min and max bounds and is requesting scale %s by %d",
+		autoscalingGroup.Name, numNodes, dir.String(), delta)
+
+	// This controller does not respect the cooldown because we want to immediately
+	// reconcile situations where we're outside of the expected bounds
+	// (This can happen due to an actor editing the ASG CR)
+	errCh := make(chan error)
+	agc.scaleRequestCh <- ScaleRequest{
+		asgName:         autoscalingGroup.Name,
+		direction:       dir,
+		adjustmentType:  adjustmentTypeAbsolute,
+		adjustmentValue: float64(delta),
+		ignoreCooldown:  true,
+		errCh:           errCh,
+	}
+
+	err = <-errCh
 	if err != nil {
-		return err
+		// If a scale request fails, just return an error so the relevant ASG can be re-enqueued
+		return errors.Wrap(err, "requesting scale manager to scale")
 	}
 
-	scaledUp := isScaleUpEvent(numNodes, desired)
-	strategy := getAutoscalingGroupStrategy(scaledUp, autoscalingGroup.Spec)
-	scaled, err := engine.SetTargetNodeCount(autoscalingGroup.Spec.NodeSelector, desired, strategy)
-	if err != nil {
-		return err
-	}
-
-	if !scaled {
-		return nil
-	}
-
-	if scaledUp {
-		agc.recorder.Event(autoscalingGroup, corev1.EventTypeNormal, events.ScaledUp, fmt.Sprintf("Autoscaling group %s node count (%d) was not within min and max bounds and was scaled up to %d", autoscalingGroup.Name, numNodes, desired))
-	} else {
-		agc.recorder.Event(autoscalingGroup, corev1.EventTypeNormal, events.ScaledDown, fmt.Sprintf("Autoscaling group %s node count (%d) was not within min and max bounds and was scaled down to %d", autoscalingGroup.Name, numNodes, desired))
-	}
-
-	// TODO: rethink how to handle this error
-	// https://github.com/containership/cerebral/issues/10
-	return agc.updateAutoscalingGroupStatus(autoscalingGroup)
+	return nil
 }
 
 func (agc *AutoscalingGroupController) updateAutoscalingGroupStatus(autoscalingGroup *cerebralv1alpha1.AutoscalingGroup) error {
@@ -382,4 +348,35 @@ func findAGsMatchingNodeLabels(nodeLabels map[string]string, ags []*cerebralv1al
 	}
 
 	return matchingags
+}
+
+// determineScaleDeltaAndDirection determines, based on the current node count and min/max
+// of the ASG, if we should scale to be back within the bounds and if so, in which direction.
+// If a delta of 0 is returned, then we do not need to scale and the direction returned
+// should be ignored.
+// If a non-zero delta is returned, then we should scale in the returned direction.
+func determineScaleDeltaAndDirection(currNodeCount, minNodes, maxNodes int) (int, scaleDirection) {
+	target := fitWithinBounds(currNodeCount, minNodes, maxNodes)
+	if target == currNodeCount {
+		// We're already within the bounds, so nothing to do
+		return 0, scaleDirectionDown
+	}
+
+	delta := currNodeCount - target
+	dir := scaleDirectionDown
+	if delta < 0 {
+		dir = scaleDirectionUp
+		delta = abs(delta)
+	}
+
+	return delta, dir
+}
+
+// abs returns the absolute value of an int
+func abs(val int) int {
+	if val < 0 {
+		return -val
+	}
+
+	return val
 }
