@@ -9,52 +9,6 @@ import (
 	"github.com/containership/cerebral/pkg/nodeutil"
 )
 
-type buildDesiredCountTest struct {
-	name     string
-	curr     int
-	min      int
-	max      int
-	expected int
-}
-
-var desiredCountTests = []*buildDesiredCountTest{
-	&buildDesiredCountTest{
-		name:     "Current node count is within min and max bounds, return current count",
-		curr:     4,
-		min:      3,
-		max:      7,
-		expected: 4,
-	},
-	&buildDesiredCountTest{
-		name:     "Current node count is less than min, return min",
-		curr:     1,
-		min:      2,
-		max:      3,
-		expected: 2,
-	},
-	&buildDesiredCountTest{
-		name:     "Current node count is greater than max, return max",
-		curr:     7,
-		min:      3,
-		max:      5,
-		expected: 5,
-	},
-	&buildDesiredCountTest{
-		name:     "Current node count is equal to min, return current count",
-		curr:     1,
-		min:      1,
-		max:      2,
-		expected: 1,
-	},
-}
-
-func TestGetDesiredNodeCount(t *testing.T) {
-	for _, test := range desiredCountTests {
-		desired := getDesiredNodeCount(test.curr, test.min, test.max)
-		assert.Equal(t, test.expected, desired, test.name)
-	}
-}
-
 type buildNodesLabelSelector struct {
 	name           string
 	labels         map[string]string
@@ -196,18 +150,6 @@ func TestFindAGsMatchingNodeLabels(t *testing.T) {
 	}
 }
 
-func TestIsScaleUpEvent(t *testing.T) {
-	// isScaleUpEvent(curr, desired)
-	scale := isScaleUpEvent(3, 5) //true
-	assert.True(t, scale)
-
-	scale = isScaleUpEvent(7, 1) //false
-	assert.False(t, scale)
-
-	scale = isScaleUpEvent(5, 5) //false
-	assert.False(t, scale)
-}
-
 func TestGetAutoscalingGroupStrategy(t *testing.T) {
 	upStrategy := "custom-up"
 	downStrategy := "custom-down"
@@ -220,12 +162,120 @@ func TestGetAutoscalingGroupStrategy(t *testing.T) {
 		},
 	}
 
-	strategy := getAutoscalingGroupStrategy(true, ag.Spec) // "custom-up"
+	strategy := getAutoscalingGroupStrategy(scaleDirectionUp, ag) // "custom-up"
 	assert.Equal(t, upStrategy, strategy)
 
-	strategy = getAutoscalingGroupStrategy(false, ag.Spec) // "custom-down"
+	strategy = getAutoscalingGroupStrategy(scaleDirectionDown, ag) // "custom-down"
 	assert.Equal(t, downStrategy, strategy)
 
-	strategy = getAutoscalingGroupStrategy(false, cerebralv1alpha1.AutoscalingGroupSpec{}) // "random"
+	strategy = getAutoscalingGroupStrategy(scaleDirectionDown, &cerebralv1alpha1.AutoscalingGroup{}) // "random"
 	assert.Equal(t, defaultAutoscalingStrategy, strategy)
+}
+
+type scaleDeltaTest struct {
+	curr int
+	min  int
+	max  int
+
+	expectedDelta int
+	expectedDir   scaleDirection
+
+	message string
+}
+
+var scaleDeltaTests = []scaleDeltaTest{
+	{
+		curr: 0,
+		min:  1,
+		max:  1,
+
+		expectedDelta: 1,
+		expectedDir:   scaleDirectionUp,
+
+		message: "scale up from 0 to min",
+	},
+	{
+		curr: 1,
+		min:  1,
+		max:  1,
+
+		expectedDelta: 0,
+
+		message: "curr == min == max is a noop",
+	},
+	{
+		curr: 1,
+		min:  3,
+		max:  5,
+
+		expectedDelta: 2,
+		expectedDir:   scaleDirectionUp,
+
+		message: "scale up to min",
+	},
+	{
+		curr: 3,
+		min:  3,
+		max:  5,
+
+		expectedDelta: 0,
+
+		message: "bounds check is inclusive (curr == min is a noop)",
+	},
+	{
+		curr: 5,
+		min:  3,
+		max:  5,
+
+		expectedDelta: 0,
+
+		message: "bounds check is inclusive (curr == max is a noop)",
+	},
+	{
+		curr: 0,
+		min:  0,
+		max:  0,
+
+		expectedDelta: 0,
+
+		message: "curr == min == max == 0 is a noop",
+	},
+	{
+		curr: 7,
+		min:  3,
+		max:  5,
+
+		expectedDelta: 2,
+		expectedDir:   scaleDirectionDown,
+
+		message: "scale down to max",
+	},
+	{
+		curr: 7,
+		min:  0,
+		max:  0,
+
+		expectedDelta: 7,
+		expectedDir:   scaleDirectionDown,
+
+		message: "scale down to max of 0",
+	},
+}
+
+func TestDetermineScaleDeltaAndDirection(t *testing.T) {
+	for _, test := range scaleDeltaTests {
+		delta, dir := determineScaleDeltaAndDirection(test.curr, test.min, test.max)
+		assert.Equal(t, test.expectedDelta, delta, test.message)
+		if test.expectedDelta != 0 {
+			assert.Equal(t, test.expectedDir, dir, test.message)
+		}
+	}
+}
+
+func TestAbs(t *testing.T) {
+	assert.Equal(t, 0, abs(0))
+	assert.Equal(t, 1, abs(1))
+	assert.Equal(t, 1, abs(-1))
+	assert.Equal(t, 50, abs(50))
+	assert.Equal(t, 50, abs(-50))
 }

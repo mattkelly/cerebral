@@ -17,19 +17,22 @@ type pollManager struct {
 	// Key is ASP name
 	pollers map[string]metricPoller
 
-	// TODO should be of type chan ScaleRequest
-	scaleRequestCh chan struct{}
+	scaleRequestCh chan<- ScaleRequest
 
 	stopCh chan struct{}
 }
 
 type alert struct {
-	aspName   string
-	direction string
-	err       error
+	aspName         string
+	direction       scaleDirection
+	adjustmentType  adjustmentType
+	adjustmentValue float64
+
+	err error
 }
 
-func newPollManager(asgName string, asps []*v1alpha1.AutoscalingPolicy, nodeSelector map[string]string, scaleRequestCh, stopCh chan struct{}) pollManager {
+func newPollManager(asgName string, asps []*v1alpha1.AutoscalingPolicy, nodeSelector map[string]string,
+	scaleRequestCh chan<- ScaleRequest, stopCh chan struct{}) pollManager {
 	mgr := pollManager{
 		asgName:        asgName,
 		asps:           asps,
@@ -55,6 +58,8 @@ func (m pollManager) run() error {
 		go p.run(&wg, alertCh, m.stopCh)
 	}
 
+	errCh := make(chan error)
+
 	for {
 		select {
 		case alert := <-alertCh:
@@ -62,8 +67,19 @@ func (m pollManager) run() error {
 				return errors.Wrapf(alert.err, "polling metrics for ASP")
 			}
 
-			// TODO forward scale request
-			log.Infof("Alert received from ASP %s in direction %s", alert.aspName, alert.direction)
+			m.scaleRequestCh <- ScaleRequest{
+				asgName:         m.asgName,
+				direction:       alert.direction,
+				adjustmentType:  alert.adjustmentType,
+				adjustmentValue: alert.adjustmentValue,
+				errCh:           errCh,
+			}
+
+			err := <-errCh
+			if err != nil {
+				// If a scale request fails, just return an error so the relevant ASG can be re-enqueued
+				return errors.Wrap(err, "requesting scale manager to scale")
+			}
 
 		case <-m.stopCh:
 			log.Infof("Poll manager for AutoscalingGroup %s shutdown requested", m.asgName)
