@@ -37,7 +37,7 @@ type Backend struct {
 const cpuQueryTemplateString = `
 100 - (
 	{{.Aggregation}}(
-		irate({{.NodeCPUMetricName}}{mode='idle',instance=~'{{.InstancesRegex}}'}[{{.Range}}])
+		irate({{.NodeCPUMetricName}}{mode='idle',instance=~'{{.PodIPsRegex}}'}[{{.Range}}])
 	) * 100
 )`
 
@@ -46,8 +46,8 @@ var cpuQueryTemplate = template.Must(template.New("cpu").Parse(cpuQueryTemplateS
 // Average memory usage across the given nodes for the given range
 const memoryQueryTemplateString = `
 100 * {{.Aggregation}}(
-	1 - (avg_over_time(node_memory_MemAvailable{instance=~'{{.InstancesRegex}}'}[{{.Range}}])
-		  / avg_over_time(node_memory_MemTotal{instance=~'{{.InstancesRegex}}'}[{{.Range}}]))
+	1 - (avg_over_time(node_memory_MemAvailable{instance=~'{{.PodIPsRegex}}'}[{{.Range}}])
+		  / avg_over_time(node_memory_MemTotal{instance=~'{{.PodIPsRegex}}'}[{{.Range}}]))
 )`
 
 var memoryQueryTemplate = template.Must(template.New("mem").Parse(memoryQueryTemplateString))
@@ -99,12 +99,16 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodeSe
 	}
 
 	switch metric {
-	case MetricCPU.String():
+	case MetricCPUPercentUtilization.String():
 		query, _ := buildCPUQuery(podIPs, configuration)
 		return b.performQuery(query)
 
-	case MetricMemory.String():
+	case MetricMemoryPercentUtilization.String():
 		query, _ := buildMemoryQuery(podIPs, configuration)
+		return b.performQuery(query)
+
+	case MetricCustom.String():
+		query, _ := buildCustomQuery(podIPs, configuration)
 		return b.performQuery(query)
 
 	default:
@@ -171,13 +175,13 @@ func (b Backend) performQuery(query string) (float64, error) {
 	return result, nil
 }
 
-func buildCPUQuery(instanceIPs []string, configuration map[string]string) (string, error) {
+func buildCPUQuery(podIPs []string, configuration map[string]string) (string, error) {
 	config := metricConfiguration{}
 	if err := config.defaultAndValidate(configuration); err != nil {
 		return "", errors.Wrap(err, "validating configuration")
 	}
 
-	config.InstancesRegex = buildInstancesRegex(instanceIPs)
+	config.PodIPsRegex = buildPodIPsRegex(podIPs)
 
 	var out bytes.Buffer
 	if err := cpuQueryTemplate.Execute(&out, config); err != nil {
@@ -187,13 +191,13 @@ func buildCPUQuery(instanceIPs []string, configuration map[string]string) (strin
 	return out.String(), nil
 }
 
-func buildMemoryQuery(instanceIPs []string, configuration map[string]string) (string, error) {
+func buildMemoryQuery(podIPs []string, configuration map[string]string) (string, error) {
 	config := metricConfiguration{}
 	if err := config.defaultAndValidate(configuration); err != nil {
 		return "", errors.Wrap(err, "validating configuration")
 	}
 
-	config.InstancesRegex = buildInstancesRegex(instanceIPs)
+	config.PodIPsRegex = buildPodIPsRegex(podIPs)
 
 	var out bytes.Buffer
 	if err := memoryQueryTemplate.Execute(&out, config); err != nil {
@@ -203,11 +207,37 @@ func buildMemoryQuery(instanceIPs []string, configuration map[string]string) (st
 	return out.String(), nil
 }
 
-func buildInstancesRegex(instanceIPs []string) string {
+// For a custom query, there should be a single `query` key provided in the
+// configuration map. No further configuration keys are currently supported.
+func buildCustomQuery(podIPs []string, configuration map[string]string) (string, error) {
+	var query string
+	var ok bool
+	query, ok = configuration["query"]
+	if !ok {
+		return "", errors.New("single configuration key \"query\" must be provided for a custom query")
+	}
+
+	config := metricConfiguration{}
+	config.PodIPsRegex = buildPodIPsRegex(podIPs)
+
+	template, err := template.New("query").Parse(query)
+	if err != nil {
+		return "", errors.Wrap(err, "parsing custom query template")
+	}
+
+	var out bytes.Buffer
+	if err := template.Execute(&out, config); err != nil {
+		return "", err
+	}
+
+	return out.String(), nil
+}
+
+func buildPodIPsRegex(podIPs []string) string {
 	var regex string
-	for i, ip := range instanceIPs {
+	for i, ip := range podIPs {
 		regex += fmt.Sprintf("%s:.*", ip)
-		if i != len(instanceIPs)-1 {
+		if i != len(podIPs)-1 {
 			regex += "|"
 		}
 	}

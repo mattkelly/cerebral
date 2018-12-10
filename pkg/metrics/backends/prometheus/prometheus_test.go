@@ -124,21 +124,21 @@ func TestGetValue(t *testing.T) {
 		podLister:  podLister,
 	}
 
-	_, err := backend.GetValue("cpu", goodConfiguration, nil)
+	_, err := backend.GetValue("cpu_percent_utilization", goodConfiguration, nil)
 	assert.Error(t, err, "error when prometheus errors")
 
 	// Return unexpected nil
 	mockProm.On("Query", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, nil).Once()
 
-	_, err = backend.GetValue("cpu", goodConfiguration, nil)
+	_, err = backend.GetValue("cpu_percent_utilization", goodConfiguration, nil)
 	assert.Error(t, err, "error on nil result")
 
 	// Return unexpected non-Vector type
 	mockProm.On("Query", mock.Anything, mock.Anything, mock.Anything).
 		Return(&model.Scalar{}, nil).Once()
 
-	_, err = backend.GetValue("cpu", goodConfiguration, nil)
+	_, err = backend.GetValue("cpu_percent_utilization", goodConfiguration, nil)
 	assert.Error(t, err, "error on non-vector result")
 
 	// Return single element vector as expected
@@ -151,7 +151,7 @@ func TestGetValue(t *testing.T) {
 			},
 		}, nil).Once()
 
-	_, err = backend.GetValue("cpu", goodConfiguration, nil)
+	_, err = backend.GetValue("cpu_percent_utilization", goodConfiguration, nil)
 	assert.NoError(t, err, "single element vector is ok")
 
 	// Return single element vector as expected
@@ -169,7 +169,7 @@ func TestGetValue(t *testing.T) {
 			},
 		}, nil).Once()
 
-	_, err = backend.GetValue("cpu", goodConfiguration, nil)
+	_, err = backend.GetValue("cpu_percent_utilization", goodConfiguration, nil)
 	assert.Error(t, err, "multiple element vector errors")
 
 	_, err = backend.GetValue("not a valid metric", goodConfiguration, nil)
@@ -239,17 +239,17 @@ func TestBuildMemoryQuery(t *testing.T) {
 	assert.Error(t, err, "invalid aggregation errors")
 }
 
-func TestBuildInstancesRegex(t *testing.T) {
-	regex := buildInstancesRegex(nil)
-	assert.Empty(t, regex, "nil instance IPs results in empty regex")
+func TestBuildPodIPsRegex(t *testing.T) {
+	regex := buildPodIPsRegex(nil)
+	assert.Empty(t, regex, "nil pod IPs results in empty regex")
 
-	regex = buildInstancesRegex(noIPs)
-	assert.Empty(t, regex, "no instance IPs results in empty regex")
+	regex = buildPodIPsRegex(noIPs)
+	assert.Empty(t, regex, "no pod IPs results in empty regex")
 
-	regex = buildInstancesRegex(oneIP)
+	regex = buildPodIPsRegex(oneIP)
 	assert.Equal(t, "10.0.0.1:.*", regex, "single IP regex")
 
-	regex = buildInstancesRegex(multipleIPs)
+	regex = buildPodIPsRegex(multipleIPs)
 	assert.Equal(t, "10.0.0.1:.*|10.0.0.2:.*|10.0.0.3:.*", regex, "multiple IP regex")
 }
 

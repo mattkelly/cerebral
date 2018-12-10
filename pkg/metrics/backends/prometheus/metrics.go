@@ -11,19 +11,23 @@ import (
 type Metric int
 
 const (
-	// MetricCPU is used to gather info about the CPU usage of nodes
-	MetricCPU Metric = iota
-	// MetricMemory is used to gather info about the CPU usage of nodes
-	MetricMemory
+	// MetricCPUPercentUtilization is used to gather info about the CPU usage of nodes
+	MetricCPUPercentUtilization Metric = iota
+	// MetricMemoryPercentUtilization is used to gather info about the CPU usage of nodes
+	MetricMemoryPercentUtilization
+	// MetricCustom is used to perform a custom Prometheus query
+	MetricCustom
 )
 
 // String is a stringer for Metric
 func (m Metric) String() string {
 	switch m {
-	case MetricCPU:
-		return "cpu"
-	case MetricMemory:
-		return "memory"
+	case MetricCPUPercentUtilization:
+		return "cpu_percent_utilization"
+	case MetricMemoryPercentUtilization:
+		return "memory_percent_utilization"
+	case MetricCustom:
+		return "custom"
 	}
 
 	return "unknown"
@@ -74,7 +78,7 @@ type metricConfiguration struct {
 
 	// -- Not user-specifiable
 	// Unfortunately we're required to export these fields for use in templates
-	InstancesRegex string
+	PodIPsRegex string
 }
 
 // defaults and validates the metricConfiguration. Intended to be called with an
