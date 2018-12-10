@@ -55,7 +55,7 @@ type AutoscalingGroupSpec struct {
 	Suspended       bool              `json:"suspended"`
 	MinNodes        int               `json:"minNodes"`
 	MaxNodes        int               `json:"maxNodes"`
-	ScalingStrategy ScalingStrategy   `json:"scalingStrategy"`
+	ScalingStrategy *ScalingStrategy  `json:"scalingStrategy,omitempty"`
 }
 
 // AutoscalingGroupStatus is the status for a autoscaling group

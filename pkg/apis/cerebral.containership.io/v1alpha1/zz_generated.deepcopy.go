@@ -183,7 +183,11 @@ func (in *AutoscalingGroupSpec) DeepCopyInto(out *AutoscalingGroupSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	out.ScalingStrategy = in.ScalingStrategy
+	if in.ScalingStrategy != nil {
+		in, out := &in.ScalingStrategy, &out.ScalingStrategy
+		*out = new(ScalingStrategy)
+		**out = **in
+	}
 	return
 }
 
