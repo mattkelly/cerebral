@@ -61,7 +61,7 @@ type AutoscalingGroupSpec struct {
 // AutoscalingGroupStatus is the status for a autoscaling group
 type AutoscalingGroupStatus struct {
 	// LastUpdatedAt is a Unix time, time.Time is not a valid type for code gen
-	LastUpdatedAt int64 `json:"lastUpdatedAt"`
+	LastUpdatedAt metav1.Time `json:"lastUpdatedAt"`
 }
 
 // ScalingStrategy defines the strategy that should be used when scaling up and down

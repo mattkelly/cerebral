@@ -208,27 +208,29 @@ func TestIsCoolingDown(t *testing.T) {
 		Spec: v1alpha1.AutoscalingGroupSpec{
 			CooldownPeriod: 5,
 		},
-		Status: v1alpha1.AutoscalingGroupStatus{
-			LastUpdatedAt: time.Unix(2, 0).Unix(),
-		},
+		Status: v1alpha1.AutoscalingGroupStatus{},
 	}
-
-	setTime(2)
-	assert.True(t, isCoolingDown(asg), "cooldown period is inclusive at beginning: (now == lastUpdatedAt) --> in cooldown)")
-
-	setTime(4)
-	assert.True(t, isCoolingDown(asg), "cooldown period in middle")
-
-	setTime(7)
-	assert.True(t, isCoolingDown(asg), "cooldown period in inclusive at end")
-
-	setTime(8)
-	assert.False(t, isCoolingDown(asg), "done cooling down")
 
 	// Special case: a scale has never been triggered and thus LastUpdatedAt is unset
 	setTime(0) // doesn't matter but just so it's a known value
-	asg.Status.LastUpdatedAt = 0
 	assert.False(t, isCoolingDown(asg), "unset LastUpdatedAt means not cooling down")
+
+	now := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
+	asg.Status.LastUpdatedAt = metav1.Time{
+		Time: now,
+	}
+
+	setTime(now.Add(time.Second * 2).Unix())
+	assert.True(t, isCoolingDown(asg), "cooldown period is inclusive at beginning: (now == lastUpdatedAt) --> in cooldown)")
+
+	setTime(now.Add(time.Second * 4).Unix())
+	assert.True(t, isCoolingDown(asg), "cooldown period in middle")
+
+	setTime(now.Add(time.Second * 5).Unix())
+	assert.True(t, isCoolingDown(asg), "cooldown period is inclusive at end")
+
+	setTime(now.Add(time.Second * 8).Unix())
+	assert.False(t, isCoolingDown(asg), "done cooling down")
 }
 
 type handleScaleRequestTest struct {

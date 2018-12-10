@@ -3,13 +3,13 @@ package controller
 import (
 	"fmt"
 	"math"
-	"time"
 
 	"github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
 
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -275,7 +275,7 @@ func (m *ScaleManager) handleScaleRequestForASG(asg *cerebralv1alpha1.Autoscalin
 
 func (m *ScaleManager) updateAutoscalingGroupStatus(asg *cerebralv1alpha1.AutoscalingGroup) error {
 	asgCopy := asg.DeepCopy()
-	asgCopy.Status.LastUpdatedAt = time.Now().Unix()
+	asgCopy.Status.LastUpdatedAt = metav1.Now()
 	_, err := m.cerebralclientset.CerebralV1alpha1().AutoscalingGroups().UpdateStatus(asgCopy)
 	return err
 }
@@ -322,11 +322,11 @@ func fitWithinBounds(val, min, max int) int {
 }
 
 func isCoolingDown(asg *cerebralv1alpha1.AutoscalingGroup) bool {
-	if asg.Status.LastUpdatedAt == 0 {
+	if asg.Status.LastUpdatedAt.IsZero() {
 		return false
 	}
 
-	return (nowFunc().Unix() - asg.Status.LastUpdatedAt) <= int64(asg.Spec.CooldownPeriod)
+	return (nowFunc().Unix() - asg.Status.LastUpdatedAt.Unix()) <= int64(asg.Spec.CooldownPeriod)
 }
 
 func getAutoscalingGroupStrategy(dir scaleDirection, asg *cerebralv1alpha1.AutoscalingGroup) string {

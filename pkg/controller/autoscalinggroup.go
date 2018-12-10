@@ -303,16 +303,6 @@ func (agc *AutoscalingGroupController) syncHandler(key string) error {
 	return nil
 }
 
-func (agc *AutoscalingGroupController) updateAutoscalingGroupStatus(autoscalingGroup *cerebralv1alpha1.AutoscalingGroup) error {
-	// NEVER modify objects from the store. It's a read-only, local cache.
-	// You can use DeepCopy() to make a deep copy of original object and modify this copy
-	// Or create a copy manually for better performance
-	agCopy := autoscalingGroup.DeepCopy()
-	agCopy.Status.LastUpdatedAt = time.Now().Unix()
-	_, err := agc.cerebralclientset.CerebralV1alpha1().AutoscalingGroups().UpdateStatus(agCopy)
-	return err
-}
-
 // findAGsMatchingNodeLabels goes through each autoscaling group and checks to see if the AG
 // nodeSelector matches the node labels passed into the function returning all
 // AGs that match
