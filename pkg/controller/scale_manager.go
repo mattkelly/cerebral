@@ -300,9 +300,9 @@ func calculateTargetNodeCount(curr, min, max int,
 
 		// As documented, take the ceiling of the result to avoid getting stuck
 		if dir == scaleDirectionUp {
-			result = int(math.Ceil(float64(curr) + adjustBy))
+			result = int(float64(curr) + math.Ceil(adjustBy))
 		} else {
-			result = int(math.Ceil(float64(curr) - adjustBy))
+			result = int(float64(curr) - math.Ceil(adjustBy))
 		}
 	}
 

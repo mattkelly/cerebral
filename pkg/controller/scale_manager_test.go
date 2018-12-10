@@ -145,6 +145,17 @@ var calculateTargetNodeCountTests = []calculateTargetNodeCountTest{
 		expected: 2,
 		message:  "percent takes ceiling",
 	},
+	{
+		curr:            4,
+		min:             1,
+		max:             5,
+		dir:             scaleDirectionDown,
+		adjustmentType:  adjustmentTypePercent,
+		adjustmentValue: 20,
+
+		expected: 3,
+		message:  "percent takes ceiling",
+	},
 }
 
 type fitWithinBoundsTest struct {
