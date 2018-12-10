@@ -8,9 +8,9 @@ import (
 	cerebralv1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
 )
 
-// FakeAutoscalingEngine creates a fake autoscaling engine that can be used for
+// fakeAutoscalingEngine creates a fake autoscaling engine that can be used for
 // testing containership autoscaling engine functions
-func FakeAutoscalingEngine() *Engine {
+func fakeAutoscalingEngine() *Engine {
 	return &Engine{
 		name: "containership",
 		config: &cloudConfig{
@@ -28,12 +28,12 @@ func TestNewAutoscalingEngine(t *testing.T) {
 }
 
 func TestName(t *testing.T) {
-	c := FakeAutoscalingEngine()
+	c := fakeAutoscalingEngine()
 	assert.Equal(t, c.name, c.Name())
 }
 
 func TestSetTargetNodeCount(t *testing.T) {
-	c := FakeAutoscalingEngine()
+	c := fakeAutoscalingEngine()
 
 	emptyLabels := make(map[string]string, 0)
 
@@ -45,10 +45,7 @@ func TestSetTargetNodeCount(t *testing.T) {
 	assert.Error(t, err, "Testing that an error is returned if there is a request to scale below 0")
 	assert.False(t, result)
 
-	nodePoolLabel := map[string]string{
-		nodePoolIDLabelKey: "node-pool-uuid",
-	}
-	result, err = c.SetTargetNodeCount(nodePoolLabel, 2, "")
-	assert.Error(t, err, "Testing that an error is returned if no strategy is specified")
-	assert.False(t, result)
+	// TODO add a test checking that providing an empty string for strategy is ok
+	// (containership engine should default) when Containership Cloud client is easily
+	// mockable
 }

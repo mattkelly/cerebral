@@ -329,17 +329,20 @@ func isCoolingDown(asg *cerebralv1alpha1.AutoscalingGroup) bool {
 	return (nowFunc().Unix() - asg.Status.LastUpdatedAt.Unix()) <= int64(asg.Spec.CooldownPeriod)
 }
 
+// Given the scale direction, return the scaling strategy associated with it.
+// If ScalingStrategy is not provided in the ASG spec, an empty string is returned
+// and the engine is expected to handle defaulting (or erroring) as appropriate.
 func getAutoscalingGroupStrategy(dir scaleDirection, asg *cerebralv1alpha1.AutoscalingGroup) string {
+	if asg.Spec.ScalingStrategy == nil {
+		return ""
+	}
+
+	// The individual strategies may still be unspecified (empty strings), and that's ok
 	var strategy string
 	if dir == scaleDirectionUp {
 		strategy = asg.Spec.ScalingStrategy.ScaleUp
 	} else {
 		strategy = asg.Spec.ScalingStrategy.ScaleDown
-	}
-
-	if strategy == "" {
-		// TODO: update this to reference the value provided by the associated AutoscalingEngine.
-		strategy = defaultAutoscalingStrategy
 	}
 
 	return strategy

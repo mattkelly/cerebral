@@ -37,9 +37,6 @@ const (
 
 	// number of times an autoscaling group will retry syncing
 	maxRequeues = 5
-
-	// the default scaling strategy to pass the autoscaling engine if one is not user defined
-	defaultAutoscalingStrategy = "random"
 )
 
 // AutoscalingGroupController is a controller for scaling an autoscaling

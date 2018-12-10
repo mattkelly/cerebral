@@ -77,7 +77,8 @@ func (cae *Engine) SetTargetNodeCount(nodeSelectors map[string]string, numNodes 
 
 	log.Infof("AutoscalingEngine %s is requesting Containership Cloud to set target nodes %v to %d", cae.Name(), nodeSelectors, numNodes)
 	switch strategy {
-	case "random":
+	case "random", "":
+		// random is the default for this engine
 		return cae.scaleStrategyRandom(id, numNodes)
 	default:
 		return false, errors.Errorf("unable to scale node pool using strategy %s", strategy)

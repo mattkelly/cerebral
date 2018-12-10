@@ -155,7 +155,7 @@ func TestGetAutoscalingGroupStrategy(t *testing.T) {
 	downStrategy := "custom-down"
 	ag := &cerebralv1alpha1.AutoscalingGroup{
 		Spec: cerebralv1alpha1.AutoscalingGroupSpec{
-			ScalingStrategy: cerebralv1alpha1.ScalingStrategy{
+			ScalingStrategy: &cerebralv1alpha1.ScalingStrategy{
 				ScaleUp:   upStrategy,
 				ScaleDown: downStrategy,
 			},
@@ -168,8 +168,11 @@ func TestGetAutoscalingGroupStrategy(t *testing.T) {
 	strategy = getAutoscalingGroupStrategy(scaleDirectionDown, ag) // "custom-down"
 	assert.Equal(t, downStrategy, strategy)
 
-	strategy = getAutoscalingGroupStrategy(scaleDirectionDown, &cerebralv1alpha1.AutoscalingGroup{}) // "random"
-	assert.Equal(t, defaultAutoscalingStrategy, strategy)
+	strategy = getAutoscalingGroupStrategy(scaleDirectionDown, &cerebralv1alpha1.AutoscalingGroup{})
+	assert.Equal(t, "", strategy, "no down strategy is ok (engine defaults, not this)")
+
+	strategy = getAutoscalingGroupStrategy(scaleDirectionUp, &cerebralv1alpha1.AutoscalingGroup{})
+	assert.Equal(t, "", strategy, "no up strategy is ok (engine defaults, not this)")
 }
 
 type scaleDeltaTest struct {
