@@ -238,11 +238,11 @@ func (m *ScaleManager) handleScaleRequestForASG(asg *cerebralv1alpha1.Autoscalin
 		// a warning event if this case is interesting
 		if req.direction == scaleDirectionUp && targetNodeCount == asg.Spec.MaxNodes {
 			m.recorder.Event(asg, corev1.EventTypeWarning, events.ScaleIgnored,
-				fmt.Sprintf("scale %s operation would exceed upper bound of %d nodes",
+				fmt.Sprintf("Scale %s operation would exceed upper bound of %d nodes",
 					req.direction.String(), asg.Spec.MaxNodes))
 		} else if req.direction == scaleDirectionDown && targetNodeCount == asg.Spec.MinNodes {
 			m.recorder.Event(asg, corev1.EventTypeWarning, events.ScaleIgnored,
-				fmt.Sprintf("scale %s operation would exceed lower bound of %d nodes",
+				fmt.Sprintf("Scale %s operation would exceed lower bound of %d nodes",
 					req.direction.String(), asg.Spec.MinNodes))
 		}
 
@@ -254,7 +254,7 @@ func (m *ScaleManager) handleScaleRequestForASG(asg *cerebralv1alpha1.Autoscalin
 	scaled, err := engine.SetTargetNodeCount(asg.Spec.NodeSelector, targetNodeCount, strategy)
 	if err != nil {
 		m.recorder.Event(asg, corev1.EventTypeWarning, events.ScaleError,
-			fmt.Sprintf("failed to scale: %s", err))
+			fmt.Sprintf("Failed to scale: %s", err))
 		return false, err
 	}
 
@@ -264,10 +264,10 @@ func (m *ScaleManager) handleScaleRequestForASG(asg *cerebralv1alpha1.Autoscalin
 
 	if req.direction == scaleDirectionUp {
 		m.recorder.Event(asg, corev1.EventTypeNormal, events.ScaledUp,
-			fmt.Sprintf("scaled up to %d nodes using strategy %q", targetNodeCount, strategy))
+			fmt.Sprintf("Scaled up to %d nodes using strategy %q", targetNodeCount, strategy))
 	} else {
 		m.recorder.Event(asg, corev1.EventTypeNormal, events.ScaledDown,
-			fmt.Sprintf("scaled down to %d nodes using strategy %q", targetNodeCount, strategy))
+			fmt.Sprintf("Scaled down to %d nodes using strategy %q", targetNodeCount, strategy))
 	}
 
 	return true, nil

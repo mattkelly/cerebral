@@ -80,11 +80,11 @@ func (m pollManager) run() error {
 
 			if alert.direction == scaleDirectionUp {
 				m.recorder.Event(asp, corev1.EventTypeNormal, events.ScaleUpAlerted,
-					fmt.Sprintf("alert triggered to scale up by %.2f (%s)",
+					fmt.Sprintf("Alert triggered to scale up by %.2f (%s)",
 						alert.adjustmentValue, alert.adjustmentType.String()))
 			} else {
 				m.recorder.Event(asp, corev1.EventTypeNormal, events.ScaleDownAlerted,
-					fmt.Sprintf("alert triggered to scale down by %.2f (%s)",
+					fmt.Sprintf("Alert triggered to scale down by %.2f (%s)",
 						alert.adjustmentValue, alert.adjustmentType.String()))
 			}
 
