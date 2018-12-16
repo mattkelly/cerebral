@@ -22,7 +22,7 @@ import (
 	"github.com/containership/cluster-manager/pkg/log"
 
 	cerebralv1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
-	"github.com/containership/cerebral/pkg/autoscalingengine"
+	"github.com/containership/cerebral/pkg/autoscaling"
 	cerebral "github.com/containership/cerebral/pkg/client/clientset/versioned"
 	cinformers "github.com/containership/cerebral/pkg/client/informers/externalversions"
 	clisters "github.com/containership/cerebral/pkg/client/listers/cerebral.containership.io/v1alpha1"
@@ -218,7 +218,7 @@ func (m *ScaleManager) handleScaleRequestForASG(asg *cerebralv1alpha1.Autoscalin
 		return false, nil
 	}
 
-	engine, err := autoscalingengine.Registry().Get(asg.Spec.Engine)
+	engine, err := autoscaling.Registry().Get(asg.Spec.Engine)
 	if err != nil {
 		return false, errors.Wrapf(err, "getting engine %q from registry", asg.Spec.Engine)
 	}
