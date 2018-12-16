@@ -4,7 +4,6 @@ import (
 	"flag"
 	"os"
 	"runtime"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -15,11 +14,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	cerebralv1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
-	"github.com/containership/cerebral/pkg/autoscalingengine"
-	"github.com/containership/cerebral/pkg/autoscalingengine/containership"
 	"github.com/containership/cerebral/pkg/buildinfo"
 	cerebral "github.com/containership/cerebral/pkg/client/clientset/versioned"
 	cerebralscheme "github.com/containership/cerebral/pkg/client/clientset/versioned/scheme"
@@ -60,8 +54,6 @@ func main() {
 	kubeInformerFactory := informers.NewSharedInformerFactory(kubeclientset, 30*time.Second)
 	cerebralInformerFactory := cinformers.NewSharedInformerFactory(cerebralclientset, 30*time.Second)
 
-	registerContainershipEngineOrDie(cerebralclientset)
-
 	stopCh := make(chan struct{})
 	scaleMgr := controller.NewScaleManager(
 		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory)
@@ -75,6 +67,9 @@ func main() {
 		scaleMgr.ScaleRequestChan())
 
 	metricsBackendController := controller.NewMetricsBackend(
+		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory)
+
+	autoscalingEngineController := controller.NewAutoscalingEngine(
 		kubeclientset, kubeInformerFactory, cerebralclientset, cerebralInformerFactory)
 
 	kubeInformerFactory.Start(stopCh)
@@ -95,6 +90,12 @@ func main() {
 	go func() {
 		if err := metricsBackendController.Run(1, stopCh); err != nil {
 			log.Fatalf("Error running MetricsBackendController: %s", err.Error())
+		}
+	}()
+
+	go func() {
+		if err := autoscalingEngineController.Run(1, stopCh); err != nil {
+			log.Fatalf("Error running AutoscalingEngineController: %s", err.Error())
 		}
 	}()
 
@@ -132,47 +133,4 @@ func determineConfig() (*rest.Config, error) {
 	}
 
 	return config, nil
-}
-
-// registerContainershipEngineOrDie assumes a few things...
-// 1. It assumes that the containership autoscaling engine CR exists, if not cerebral fails
-// 2. Only engines of type containership will be registered
-// 3. Finally if the containership autoscaling engine is unable to be created it
-//    assumes cerebral can't/shouldn't be used and fails.
-func registerContainershipEngineOrDie(cerebralclientset *cerebral.Clientset) {
-	engineCreated := false
-
-	enginecrs, err := cerebralclientset.Cerebral().AutoscalingEngines().List(metav1.ListOptions{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, enginecr := range enginecrs.Items {
-		// only register engines of type containership
-		switch strings.ToLower(enginecr.Spec.Type) {
-		case "containership":
-			engineCreated, err = initializeAndRegisterContainershipEngine(enginecr)
-			if err != nil {
-				log.Fatalf("Failed to create Containership autoscaling engine: %+v", err)
-			}
-
-		default:
-			log.Infof("Autoscaling Engine of type '%s' is unable to be registered", enginecr.Spec.Type)
-		}
-
-	}
-
-	if !engineCreated {
-		log.Fatalf("No AutoscalingEngine of type containership found. Failed to create an autoscaling engine")
-	}
-}
-
-func initializeAndRegisterContainershipEngine(enginecr cerebralv1alpha1.AutoscalingEngine) (bool, error) {
-	engine, err := containership.NewAutoscalingEngine(enginecr)
-	if err != nil {
-		return false, err
-	}
-
-	autoscalingengine.Registry().Put(engine)
-	return true, nil
 }
