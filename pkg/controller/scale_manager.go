@@ -296,13 +296,13 @@ func calculateTargetNodeCount(curr, min, max int,
 
 	case adjustmentTypePercent:
 		// Example: 25.5% should be specified as 25.5 in the CR, not 0.255
-		adjustBy := float64(curr) * (0.01 * adjustmentValue)
-
 		// As documented, take the ceiling of the result to avoid getting stuck
+		adjustBy := math.Ceil(float64(curr) * (0.01 * adjustmentValue))
+
 		if dir == scaleDirectionUp {
-			result = int(float64(curr) + math.Ceil(adjustBy))
+			result = int(float64(curr) + adjustBy)
 		} else {
-			result = int(float64(curr) - math.Ceil(adjustBy))
+			result = int(float64(curr) - adjustBy)
 		}
 	}
 

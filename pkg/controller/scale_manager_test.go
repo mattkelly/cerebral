@@ -8,6 +8,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"k8s.io/client-go/tools/record"
+
 	"github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
 )
 
@@ -249,8 +251,10 @@ type handleScaleRequestTest struct {
 	req ScaleRequest
 }
 
-func HandleScaleRequestForASG(t *testing.T) {
-	mgr := ScaleManager{}
+func TestHandleScaleRequestForASG(t *testing.T) {
+	mgr := ScaleManager{
+		recorder: &record.FakeRecorder{},
+	}
 
 	asg := &v1alpha1.AutoscalingGroup{
 		ObjectMeta: metav1.ObjectMeta{
