@@ -55,6 +55,8 @@ func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-cha
 	downAlert := &alertState{}
 
 	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ticker.C:
