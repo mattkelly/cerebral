@@ -51,7 +51,7 @@ func (d scaleDirection) String() string {
 type adjustmentType int
 
 const (
-	adjustmentTypeAbsolute = iota
+	adjustmentTypeAbsolute adjustmentType = iota
 	adjustmentTypePercent
 )
 
