@@ -23,7 +23,7 @@ With the increased importance placed on monitoring and observability in modern i
 ## How Cerebral Works
 
 <p align="center">
-    <img src="https://github.com/containership/cerebral/blob/assets/cerebral_high_level_architecture.svg" width=600>
+    <img src="https://github.com/containership/cerebral/blob/assets/cerebral_high_level_architecture.png" width=600>
 </p>
 
 Cerebral is simple at its core: it polls a `MetricsBackend` and triggers alerts if thresholds defined in any `AutoscalingPolicy` associated with any `AutoscalingGroup` are breached.
