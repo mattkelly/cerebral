@@ -155,6 +155,10 @@ func (m *ScaleManager) ScaleRequestChan() chan<- ScaleRequest {
 // It must respond to every request on the request's errCh, with the response being
 // nil if no error occurred.
 func (m *ScaleManager) Run(stopCh <-chan struct{}) error {
+	if ok := cache.WaitForCacheSync(stopCh, m.asgSynced, m.nodeSynced); !ok {
+		return errors.Errorf("%s: failed to wait for caches to sync", scaleManagerName)
+	}
+
 	for {
 		select {
 		case req := <-m.scaleRequestCh:
