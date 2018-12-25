@@ -34,7 +34,6 @@
   version = "v4.0.1"
 
 [[projects]]
-  branch = "master"
   digest = "1:870930fc29f8288a7eec3437e264c03147ae955d1d18a8fed2c2bd20e765a6f4"
   name = "github.com/containership/csctl"
   packages = [
@@ -275,6 +274,29 @@
   pruneopts = "T"
   revision = "9f23e2d6bd2a77f959b2bf6acdbefd708a83a4a4"
   version = "v0.3.6"
+
+[[projects]]
+  digest = "1:7ed2f889c7386a4eaea5c15c9a72103f33c48bbca7f75e1c9fca9f5139f0af21"
+  name = "github.com/influxdata/influxdb"
+  packages = [
+    "client/v2",
+    "models",
+    "pkg/escape",
+  ]
+  pruneopts = "T"
+  revision = "76f907b0fada2f16931e37471da695349fcdf8c6"
+  version = "v1.7.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:422090a07d335d1b549678108197d07e7f7ae3d854f72da0eba888d71a1ce8e1"
+  name = "github.com/influxdata/platform"
+  packages = [
+    "models",
+    "pkg/escape",
+  ]
+  pruneopts = "T"
+  revision = "94b7c3cea0ef7aa9ecb96ae35c756728b85625f2"
 
 [[projects]]
   digest = "1:5d713dbcad44f3358fec51fd5573d4f733c02cac5a40dcb177787ad5ffe9272f"
@@ -898,6 +920,8 @@
     "github.com/containership/csctl/cloud",
     "github.com/containership/csctl/cloud/provision/types",
     "github.com/golang/glog",
+    "github.com/influxdata/influxdb/client/v2",
+    "github.com/influxdata/influxdb/models",
     "github.com/pkg/errors",
     "github.com/prometheus/client_golang/api",
     "github.com/prometheus/client_golang/api/prometheus/v1",

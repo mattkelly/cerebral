@@ -25,6 +25,10 @@ required = [
   version = "v0.9.1"
 
 [[constraint]]
+  name = "github.com/influxdata/influxdb"
+  version = "v1.7.2"
+
+[[constraint]]
   name = "k8s.io/api"
   version = "kubernetes-1.12.3"
 
@@ -34,7 +38,7 @@ required = [
 
 [[constraint]]
   name = "github.com/containership/csctl"
-  revision = "f38128550600f3d718d0f57631b5743abdd0cfb9"  
+  revision = "f38128550600f3d718d0f57631b5743abdd0cfb9"
 
 [[constraint]]
   name = "k8s.io/apimachinery"
