@@ -22,6 +22,7 @@ import (
 	clisters "github.com/containership/cerebral/pkg/client/listers/cerebral.containership.io/v1alpha1"
 
 	"github.com/containership/cerebral/pkg/metrics"
+	"github.com/containership/cerebral/pkg/metrics/backends/influxdb"
 	k8smb "github.com/containership/cerebral/pkg/metrics/backends/kubernetes"
 	"github.com/containership/cerebral/pkg/metrics/backends/prometheus"
 
@@ -263,6 +264,16 @@ func (c *MetricsBackendController) instantiateBackend(backend *cerebralv1alpha1.
 		}
 
 		return prometheus.NewClient(address, c.nodeLister, c.podLister)
+
+	case "influxdb":
+		var address string
+		var ok bool
+		address, ok = backend.Spec.Configuration["address"]
+		if !ok {
+			return nil, errors.New("InfluxDB backend requires address in configuration")
+		}
+
+		return influxdb.NewClient(address, c.nodeLister)
 
 	default:
 		return nil, errors.Errorf("unknown backend type %q", backend.Spec.Type)
