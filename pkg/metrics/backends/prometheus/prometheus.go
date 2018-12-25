@@ -100,15 +100,24 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodeSe
 
 	switch metric {
 	case MetricCPUPercentUtilization.String():
-		query, _ := buildCPUQuery(podIPs, configuration)
+		query, err := buildCPUQuery(podIPs, configuration)
+		if err != nil {
+			return 0, errors.Wrap(err, "building query")
+		}
 		return b.performQuery(query)
 
 	case MetricMemoryPercentUtilization.String():
-		query, _ := buildMemoryQuery(podIPs, configuration)
+		query, err := buildMemoryQuery(podIPs, configuration)
+		if err != nil {
+			return 0, errors.Wrap(err, "building query")
+		}
 		return b.performQuery(query)
 
 	case MetricCustom.String():
-		query, _ := buildCustomQuery(podIPs, configuration)
+		query, err := buildCustomQuery(podIPs, configuration)
+		if err != nil {
+			return 0, errors.Wrap(err, "building query")
+		}
 		return b.performQuery(query)
 
 	default:
