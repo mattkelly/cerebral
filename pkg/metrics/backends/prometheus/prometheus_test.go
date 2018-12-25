@@ -28,6 +28,16 @@ var (
 		"aggregation": "avg",
 	}
 
+	goodCustomQueryConfiguration = map[string]string{
+		"query": `
+			100 - (
+				{{.Aggregation}}(
+					irate({{.NodeCPUMetricName}}{mode='idle',instance=~'{{.PodIPsRegex}}'}[{{.Range}}])
+				) * 100
+			)
+		`,
+	}
+
 	badAggregationConfiguration = map[string]string{
 		"aggregation": "invalid-aggregation",
 	}
@@ -237,6 +247,14 @@ func TestBuildMemoryQuery(t *testing.T) {
 
 	_, err = buildMemoryQuery(oneIP, badAggregationConfiguration)
 	assert.Error(t, err, "invalid aggregation errors")
+}
+
+func TestBuildCustomQuery(t *testing.T) {
+	_, err := buildCustomQuery(oneIP, goodCustomQueryConfiguration)
+	assert.NoError(t, err, "good custom query configuration is ok")
+
+	_, err = buildCustomQuery(oneIP, emptyConfiguration)
+	assert.Error(t, err, "empty configuration is invalid (requires query)")
 }
 
 func TestBuildPodIPsRegex(t *testing.T) {
