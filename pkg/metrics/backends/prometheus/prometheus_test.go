@@ -232,10 +232,10 @@ func TestBuildMemoryQuery(t *testing.T) {
 	_, err := buildMemoryQuery(oneIP, goodConfiguration)
 	assert.NoError(t, err, "good configuration is ok")
 
-	_, err = buildCPUQuery(oneIP, emptyConfiguration)
+	_, err = buildMemoryQuery(oneIP, emptyConfiguration)
 	assert.NoError(t, err, "empty configuration is ok (defaults)")
 
-	_, err = buildCPUQuery(oneIP, badAggregationConfiguration)
+	_, err = buildMemoryQuery(oneIP, badAggregationConfiguration)
 	assert.Error(t, err, "invalid aggregation errors")
 }
 
