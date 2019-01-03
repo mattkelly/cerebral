@@ -16,14 +16,14 @@ type buildNodesLabelSelector struct {
 }
 
 var buildNodesLabelSelectorTests = []*buildNodesLabelSelector{
-	&buildNodesLabelSelector{
+	{
 		name: "check single label",
 		labels: map[string]string{
 			"key": "value",
 		},
 		expectedString: "key=value",
 	},
-	&buildNodesLabelSelector{
+	{
 		name: "check multiple labels",
 		labels: map[string]string{
 			"key-1": "value-1",
@@ -31,7 +31,7 @@ var buildNodesLabelSelectorTests = []*buildNodesLabelSelector{
 		},
 		expectedString: "key-1=value-1,key-2=value-2",
 	},
-	&buildNodesLabelSelector{
+	{
 		name:           "check empty labels",
 		labels:         map[string]string{},
 		expectedString: "",
@@ -88,7 +88,7 @@ var emptyAG = &cerebralv1alpha1.AutoscalingGroup{
 }
 
 var findNodesAGsTests = []*buildFindNodesAG{
-	&buildFindNodesAG{
+	{
 		name:       "test one label ag",
 		nodeLabels: singleLabel,
 		ags: []*cerebralv1alpha1.AutoscalingGroup{
@@ -98,7 +98,7 @@ var findNodesAGsTests = []*buildFindNodesAG{
 			singleAG,
 		},
 	},
-	&buildFindNodesAG{
+	{
 		name:       "multiple labels ag",
 		nodeLabels: multipleLabels,
 		ags: []*cerebralv1alpha1.AutoscalingGroup{
@@ -109,7 +109,7 @@ var findNodesAGsTests = []*buildFindNodesAG{
 			multipleLabelsAG,
 		},
 	},
-	&buildFindNodesAG{
+	{
 		name:       "test non match ag",
 		nodeLabels: singleLabel,
 		ags: []*cerebralv1alpha1.AutoscalingGroup{
@@ -117,7 +117,7 @@ var findNodesAGsTests = []*buildFindNodesAG{
 		},
 		expected: []*cerebralv1alpha1.AutoscalingGroup{},
 	},
-	&buildFindNodesAG{
+	{
 		name:       "test empty ag",
 		nodeLabels: singleLabel,
 		ags: []*cerebralv1alpha1.AutoscalingGroup{
@@ -127,7 +127,8 @@ var findNodesAGsTests = []*buildFindNodesAG{
 		expected: []*cerebralv1alpha1.AutoscalingGroup{
 			emptyAG,
 		},
-	}, &buildFindNodesAG{
+	},
+	{
 		name:       "test multiple ag selection",
 		nodeLabels: multipleLabels,
 		ags: []*cerebralv1alpha1.AutoscalingGroup{

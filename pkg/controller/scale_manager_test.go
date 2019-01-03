@@ -536,28 +536,28 @@ type fitWithinBoundsTest struct {
 }
 
 var fitWithinBoundsTests = []fitWithinBoundsTest{
-	fitWithinBoundsTest{
+	{
 		name:     "val is within min and max bounds, return val",
 		val:      4,
 		min:      3,
 		max:      7,
 		expected: 4,
 	},
-	fitWithinBoundsTest{
+	{
 		name:     "val is less than min, return min",
 		val:      1,
 		min:      2,
 		max:      3,
 		expected: 2,
 	},
-	fitWithinBoundsTest{
+	{
 		name:     "val is greater than max, return max",
 		val:      7,
 		min:      3,
 		max:      5,
 		expected: 5,
 	},
-	fitWithinBoundsTest{
+	{
 		name:     "val is equal to min, return val",
 		val:      1,
 		min:      1,
