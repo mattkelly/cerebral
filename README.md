@@ -43,6 +43,10 @@ Support for a different `MetricsBackend` can be added by implementing the [metri
 In addition to traditional metrics backends such as the currently available Prometheus integration, there are countless possible use-cases for custom, application-specific metrics backends.
 For example, autoscaling could be performed based on the current depth of some application queue.
 
+The currently available metrics backends include:
+* [Kubernetes][kubernetes-metrics-backend]
+* Prometheus
+
 #### Autoscaling Engine
 
 Support for a different `AutoscalingEngine` can be added by implementing the [engine interface][engine-interface].
@@ -91,3 +95,4 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md) for more details.
 
 [metrics-backend-interface]: https://github.com/containership/cerebral/blob/master/pkg/metrics/backend.go
 [engine-interface]: https://github.com/containership/cerebral/blob/master/pkg/autoscaling/engine.go
+[kubernetes-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/kubernetes.md
