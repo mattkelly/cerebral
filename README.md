@@ -44,6 +44,7 @@ In addition to traditional metrics backends such as the currently available Prom
 For example, autoscaling could be performed based on the current depth of some application queue.
 
 The currently available metrics backends include:
+* InfluxDB
 * [Kubernetes][kubernetes-metrics-backend]
 * Prometheus
 
@@ -58,7 +59,7 @@ Because an `AutoscalingGroup` is defined by a label selector, the provider (or s
 This project is in alpha.
 There may be breaking changes made as we continue to expand the project and integrated user feedback.
 
-Currently, the project has support for using Prometheus as a metrics backend.
+Currently, the project has support for several [metrics backends](https://github.com/containership/cerebral#metrics-backend).
 [Containership](https://containership.io/) is the first provider to be integrated.
 A lot more is to come - please see the GitHub issues for a roadmap, and feel free to open your own issue if a feature you'd like to see isn't already in the roadmap!
 
