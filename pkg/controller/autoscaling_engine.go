@@ -22,6 +22,7 @@ import (
 
 	"github.com/containership/cerebral/pkg/autoscaling"
 	"github.com/containership/cerebral/pkg/autoscaling/engines/containership"
+	"github.com/containership/cerebral/pkg/autoscaling/engines/digitalocean"
 
 	"github.com/pkg/errors"
 )
@@ -229,7 +230,7 @@ func (c *AutoscalingEngineController) syncHandler(key string) error {
 	return nil
 }
 
-// insantiateEngine instantiates a new engine for the given AutoscalingEngine.
+// instantiateEngine instantiates a new engine for the given AutoscalingEngine.
 // It should be the only function that knows how to instantiate a particular engine type.
 func instantiateEngine(engine *cerebralv1alpha1.AutoscalingEngine) (autoscaling.Engine, error) {
 	switch engine.Spec.Type {
@@ -243,6 +244,15 @@ func instantiateEngine(engine *cerebralv1alpha1.AutoscalingEngine) (autoscaling.
 		}
 
 		return cae, nil
+
+	case "digitalocean":
+		do, err := digitalocean.NewClient(engine.Name, engine.Spec.Configuration)
+		if err != nil {
+			return nil, errors.Wrapf(err, "constructing new digitalocean engine %q", engine.Name)
+		}
+
+		return do, nil
+
 	default:
 		return nil, errors.Errorf("unknown engine type %q", engine.Spec.Type)
 	}
