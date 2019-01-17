@@ -48,6 +48,10 @@ required = [
   name = "github.com/containership/cluster-manager"
   version = "v4.0.1"
 
+[[constraint]]
+  name = "github.com/digitalocean/godo"
+  version = "1.7.3"
+
 [prune]
   go-tests = true
   # Note that we can't do this due to the code generator packages required; see above

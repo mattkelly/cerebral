@@ -56,6 +56,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:3ef0bdd362c82d16c4991252c82a3cf05ef8630bc8a818fdc42ade588fd8ee8b"
+  name = "github.com/digitalocean/godo"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "360ee5cab86ffe07b3d5009a3bbb658862c55cf8"
+  version = "v1.7.3"
+
+[[projects]]
   digest = "1:0ffd93121f3971aea43f6a26b3eaaa64c8af20fb0ff0731087d8dab7164af5a8"
   name = "github.com/emicklei/go-restful"
   packages = [
@@ -224,6 +232,14 @@
   packages = ["."]
   pruneopts = "T"
   revision = "4030bb1f1f0c35b30ca7009e9ebd06849dd45306"
+
+[[projects]]
+  digest = "1:a98aaa0376806017a5d6f88cb8c3b8206943bd16585f58b394ac62d6e8abbc73"
+  name = "github.com/google/go-querystring"
+  packages = ["query"]
+  pruneopts = "T"
+  revision = "44c6ddd0a2342c386950e880b658017258da92fc"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -419,6 +435,14 @@
   pruneopts = "T"
   revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
   version = "v1.2.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:595e123593925253dd02152777ddb8cd42300c4f61e783e163b053802547c47c"
+  name = "github.com/tent/http-link-go"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "ac974c61c2f990f4115b119354b5e0b47550e888"
 
 [[projects]]
   digest = "1:365b8ecb35a5faf5aa0ee8d798548fc9cd4200cb95d77a5b0b285ac881bae499"
@@ -919,6 +943,7 @@
     "github.com/containership/cluster-manager/pkg/log",
     "github.com/containership/csctl/cloud",
     "github.com/containership/csctl/cloud/provision/types",
+    "github.com/digitalocean/godo",
     "github.com/golang/glog",
     "github.com/influxdata/influxdb/client/v2",
     "github.com/influxdata/influxdb/models",
@@ -928,6 +953,7 @@
     "github.com/prometheus/common/model",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/mock",
+    "golang.org/x/oauth2",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/api/resource",
