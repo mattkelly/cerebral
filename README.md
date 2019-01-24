@@ -44,7 +44,7 @@ In addition to traditional metrics backends such as the currently available Prom
 For example, autoscaling could be performed based on the current depth of some application queue.
 
 The currently available metrics backends include:
-* InfluxDB
+* [InfluxDB][influxdb-metrics-backend]
 * [Kubernetes][kubernetes-metrics-backend]
 * Prometheus
 
@@ -96,4 +96,5 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md) for more details.
 
 [metrics-backend-interface]: https://github.com/containership/cerebral/blob/master/pkg/metrics/backend.go
 [engine-interface]: https://github.com/containership/cerebral/blob/master/pkg/autoscaling/engine.go
+[influxdb-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/influxdb.md
 [kubernetes-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/kubernetes.md
