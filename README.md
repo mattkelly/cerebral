@@ -46,7 +46,7 @@ For example, autoscaling could be performed based on the current depth of some a
 The currently available metrics backends include:
 * [InfluxDB][influxdb-metrics-backend]
 * [Kubernetes][kubernetes-metrics-backend]
-* Prometheus
+* [Prometheus][prometheus-metrics-backend]
 
 #### Autoscaling Engine
 
@@ -101,5 +101,6 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md) for more details.
 [engine-interface]: https://github.com/containership/cerebral/blob/master/pkg/autoscaling/engine.go
 [influxdb-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/influxdb.md
 [kubernetes-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/kubernetes.md
+[prometheus-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/prometheus.md
 [containership-engine]: https://github.com/containership/cerebral/blob/master/docs/engines/containership.md
 [digitalocean-engine]: https://github.com/containership/cerebral/blob/master/docs/engines/digitalocean.md
