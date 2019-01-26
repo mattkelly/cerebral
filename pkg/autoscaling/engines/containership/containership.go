@@ -1,6 +1,7 @@
 package containership
 
 import (
+	"encoding/json"
 	"os"
 
 	"github.com/pkg/errors"
@@ -38,45 +39,24 @@ func NewClient(name string, configuration map[string]string) (autoscaling.Engine
 		return nil, errors.New("name must be provided")
 	}
 
-	if configuration["address"] == "" {
-		return nil, errors.New("address must be provided")
-	}
-
-	if configuration["tokenEnvVarName"] == "" {
-		return nil, errors.New("tokenEnvVarName must be provided")
-	}
-
-	if configuration["organizationID"] == "" {
-		return nil, errors.New("organizationID must be provided")
-	}
-
-	if configuration["clusterID"] == "" {
-		return nil, errors.New("clusterID must be provided")
-	}
-
-	token := os.Getenv(configuration["tokenEnvVarName"])
-	if token == "" {
-		return nil, errors.New("unable to get Containership Cloud API cluster token")
+	config := cloudConfig{}
+	if err := config.defaultAndValidate(configuration); err != nil {
+		return nil, errors.Wrap(err, "validating configuration")
 	}
 
 	// TODO: is there anyway to test this without a real token?
 	cloudclientset, err := cscloud.New(cscloud.Config{
-		Token:            token,
-		ProvisionBaseURL: configuration["address"],
+		Token:            os.Getenv(config.TokenEnvVarName),
+		ProvisionBaseURL: config.Address,
 	})
 	if err != nil {
 		return nil, errors.New("unable to create containership cloud clientset")
 	}
 
 	return Engine{
-		name: name,
-		config: &cloudConfig{
-			Address:         configuration["address"],
-			TokenEnvVarName: configuration["tokenEnvVarName"],
-			ClusterID:       configuration["clusterID"],
-			OrganizationID:  configuration["organizationID"],
-		},
-		cloud: cloudclientset,
+		name:   name,
+		config: &config,
+		cloud:  cloudclientset,
 	}, nil
 }
 
@@ -122,4 +102,65 @@ func (e Engine) scaleStrategyRandom(nodePoolID string, numNodes int) (bool, erro
 	}
 
 	return true, nil
+}
+
+func (c *cloudConfig) defaultAndValidate(configuration map[string]string) error {
+	// Round trip the config through JSON parser to populate our struct
+	j, _ := json.Marshal(configuration)
+	json.Unmarshal(j, c)
+
+	if err := c.defaultAndValidateAddress(); err != nil {
+		return err
+	}
+
+	if err := c.defaultAndValidateTokenEnvVarName(); err != nil {
+		return err
+	}
+
+	if err := c.defaultAndValidateOrganizationID(); err != nil {
+		return err
+	}
+
+	if err := c.defaultAndValidateClusterID(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *cloudConfig) defaultAndValidateAddress() error {
+	if c.Address == "" {
+		c.Address = "https://provision.containership.io"
+	}
+
+	return nil
+}
+
+func (c *cloudConfig) defaultAndValidateTokenEnvVarName() error {
+	if c.TokenEnvVarName == "" {
+		return errors.New("tokenEnvVarName must be provided")
+	}
+
+	token := os.Getenv(c.TokenEnvVarName)
+	if token == "" {
+		return errors.New("unable to get Containership Cloud API cluster token")
+	}
+
+	return nil
+}
+
+func (c *cloudConfig) defaultAndValidateOrganizationID() error {
+	if c.OrganizationID == "" {
+		return errors.New("organizationID must be provided")
+	}
+
+	return nil
+}
+
+func (c *cloudConfig) defaultAndValidateClusterID() error {
+	if c.ClusterID == "" {
+		return errors.New("clusterID must be provided")
+	}
+
+	return nil
 }
