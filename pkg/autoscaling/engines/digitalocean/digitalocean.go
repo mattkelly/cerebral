@@ -145,9 +145,9 @@ func (e Engine) scaleLabelSpecifiedNodePool(nodeSelectors map[string]string, num
 	return true, nil
 }
 
-// DigitalOcean Node pools currently do not have labels we need to identify which
-// group a node belongs to, this makes scaling a particular group impossible.
-// Scale Up: get a random node  pool and scale it to the set count
+// DigitalOcean node pools currently do not have the labels needed to identify which
+// group a node belongs to, making scaling a particular group impossible.
+// Scale Up: get a random node pool and scale it to the set count
 // Scale Down: we need to split the number of nodes that needs to be scaled down
 // across node pools if the scale down action will make a node pool less than 1 node
 func (e Engine) scaleRandomNodePool(numNodes int) (bool, error) {
@@ -191,7 +191,7 @@ func (e Engine) randomScaleDown(nodepools []*godo.KubernetesNodePool, numToScale
 			break
 		}
 
-		// can't scale a node pool to less than 1
+		// limitations in DigitalOcean prevent scaling a node pool to less than 1
 		if np.Count == 1 {
 			continue
 		}
@@ -241,8 +241,8 @@ func (e Engine) listNodePools() ([]*godo.KubernetesNodePool, error) {
 	return nodepools, nil
 }
 
-// getNodePoolByName uses the key assigned to 'NodePoolLabelKey' in the configuration
-// to get the DO node pool by ID
+// getNodePoolByLabel uses the key assigned to 'NodePoolLabelKey' in the configuration
+// to get the DigitalOcean node pool by ID
 func (e Engine) getNodePoolByLabel(nodeSelectors map[string]string) (*godo.KubernetesNodePool, error) {
 	poolID, ok := nodeSelectors[e.config.NodePoolLabelKey]
 	if !ok {
