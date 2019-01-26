@@ -55,7 +55,7 @@ Support for a different `AutoscalingEngine` can be added by implementing the [en
 Because an `AutoscalingGroup` is defined by a label selector, the provider (or some other entity) must be able to label nodes when they are added.
 
 The currently available engines include:
-* Containership
+* [Containership][containership-engine]
 * [DigitalOcean][digitalocean-engine]
 
 # Project Status
@@ -101,4 +101,5 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md) for more details.
 [engine-interface]: https://github.com/containership/cerebral/blob/master/pkg/autoscaling/engine.go
 [influxdb-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/influxdb.md
 [kubernetes-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/kubernetes.md
+[containership-engine]: https://github.com/containership/cerebral/blob/master/docs/engines/containership.md
 [digitalocean-engine]: https://github.com/containership/cerebral/blob/master/docs/engines/digitalocean.md
