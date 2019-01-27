@@ -97,10 +97,10 @@ Pull requests are also always welcome!
 However, if the feature you're considering adding is fairly large in scope, please consider opening an issue for discussion first.
 See [CONTRIBUTING.md](/CONTRIBUTING.md) for more details.
 
-[metrics-backend-interface]: https://github.com/containership/cerebral/blob/master/pkg/metrics/backend.go
-[engine-interface]: https://github.com/containership/cerebral/blob/master/pkg/autoscaling/engine.go
-[influxdb-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/influxdb.md
-[kubernetes-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/kubernetes.md
-[prometheus-metrics-backend]: https://github.com/containership/cerebral/blob/master/docs/metrics_backends/prometheus.md
-[containership-engine]: https://github.com/containership/cerebral/blob/master/docs/engines/containership.md
-[digitalocean-engine]: https://github.com/containership/cerebral/blob/master/docs/engines/digitalocean.md
+[metrics-backend-interface]: /pkg/metrics/backend.go
+[engine-interface]: /pkg/autoscaling/engine.go
+[influxdb-metrics-backend]: /docs/metrics_backends/influxdb.md
+[kubernetes-metrics-backend]: /docs/metrics_backends/kubernetes.md
+[prometheus-metrics-backend]: /docs/metrics_backends/prometheus.md
+[containership-engine]: /docs/engines/containership.md
+[digitalocean-engine]: /docs/engines/digitalocean.md
