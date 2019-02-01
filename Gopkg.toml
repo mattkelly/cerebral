@@ -52,6 +52,10 @@ required = [
   name = "github.com/digitalocean/godo"
   version = "1.7.3"
 
+[[constraint]]
+  name = "github.com/aws/aws-sdk-go"
+  version = "v1.16.26"
+
 [prune]
   go-tests = true
   # Note that we can't do this due to the code generator packages required; see above
