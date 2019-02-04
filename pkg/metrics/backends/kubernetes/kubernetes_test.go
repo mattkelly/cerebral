@@ -15,7 +15,7 @@ import (
 
 var (
 	nodeAllocatable = corev1.ResourceList{
-		corev1.ResourceCPU:              *resource.NewQuantity(2, resource.DecimalSI),
+		corev1.ResourceCPU:              resource.MustParse("1"),
 		corev1.ResourceMemory:           *resource.NewQuantity(1024, resource.DecimalSI),
 		corev1.ResourceEphemeralStorage: *resource.NewQuantity(4096, resource.DecimalSI),
 		corev1.ResourcePods:             *resource.NewQuantity(2, resource.DecimalSI),
@@ -59,7 +59,7 @@ var (
 				{
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:              *resource.NewQuantity(1, resource.DecimalSI),
+							corev1.ResourceCPU:              resource.MustParse("100m"),
 							corev1.ResourceMemory:           *resource.NewQuantity(256, resource.DecimalSI),
 							corev1.ResourceEphemeralStorage: *resource.NewQuantity(1024, resource.DecimalSI),
 						},
@@ -80,7 +80,7 @@ var (
 				{
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:              *resource.NewQuantity(2, resource.DecimalSI),
+							corev1.ResourceCPU:              resource.MustParse("200m"),
 							corev1.ResourceMemory:           *resource.NewQuantity(512, resource.DecimalSI),
 							corev1.ResourceEphemeralStorage: *resource.NewQuantity(2048, resource.DecimalSI),
 						},
@@ -146,7 +146,7 @@ func TestCalculateCPUAllocationPercentage(t *testing.T) {
 	var nodeList = []*corev1.Node{node0, node1, node2}
 
 	percentage := backend.calculateCPUAllocationPercentage(podList, nodeList)
-	assert.Equal(t, float64(50), percentage, "returns correct allocation percentage")
+	assert.Equal(t, float64(10), percentage, "returns correct allocation percentage")
 }
 
 func TestCalculateMemoryAllocationPercentage(t *testing.T) {

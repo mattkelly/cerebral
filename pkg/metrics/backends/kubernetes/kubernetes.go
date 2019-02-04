@@ -48,6 +48,10 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodeSe
 		return 0, errors.Wrapf(err, "getting pods on nodes for metric %s", metric)
 	}
 
+	// NOTE: some of the below calculate* functions use `resource.MilliValue()`
+	// from apimachinery. This can technically overflow for a value q where
+	// |q|*1000 > MaxInt64. If this ends up being an issue, we should add a
+	// check for overflow.
 	switch metric {
 	case MetricCPUPercentAllocation.String():
 		value := b.calculateCPUAllocationPercentage(pods, nodes)
@@ -98,13 +102,13 @@ func (b Backend) calculateCPUAllocationPercentage(pods []*corev1.Pod, nodes []*c
 
 	// calculate sum of allocatable CPUs across nodes
 	for _, node := range nodes {
-		allocatableCPUs += node.Status.Allocatable.Cpu().Value()
+		allocatableCPUs += node.Status.Allocatable.Cpu().MilliValue()
 	}
 
 	// calculate sum of requested CPUs across pods
 	for _, pod := range pods {
 		for _, container := range pod.Spec.Containers {
-			requestedCPUs += container.Resources.Requests.Cpu().Value()
+			requestedCPUs += container.Resources.Requests.Cpu().MilliValue()
 		}
 	}
 
@@ -118,13 +122,13 @@ func (b Backend) calculateMemoryAllocationPercentage(pods []*corev1.Pod, nodes [
 
 	// calculate sum of allocatable memory across nodes
 	for _, node := range nodes {
-		allocatableMemory += node.Status.Allocatable.Memory().Value()
+		allocatableMemory += node.Status.Allocatable.Memory().MilliValue()
 	}
 
 	// calculate sum of requested memory across pods
 	for _, pod := range pods {
 		for _, container := range pod.Spec.Containers {
-			requestedMemory += container.Resources.Requests.Memory().Value()
+			requestedMemory += container.Resources.Requests.Memory().MilliValue()
 		}
 	}
 
@@ -138,13 +142,13 @@ func (b Backend) calculateEphemeralStorageAllocationPercentage(pods []*corev1.Po
 
 	// calculate sum of allocatable ephemeral storage across nodes
 	for _, node := range nodes {
-		allocatableStorage += node.Status.Allocatable.StorageEphemeral().Value()
+		allocatableStorage += node.Status.Allocatable.StorageEphemeral().MilliValue()
 	}
 
 	// calculate sum of requested ephemeral storage across pods
 	for _, pod := range pods {
 		for _, container := range pod.Spec.Containers {
-			requestedStorage += container.Resources.Requests.StorageEphemeral().Value()
+			requestedStorage += container.Resources.Requests.StorageEphemeral().MilliValue()
 		}
 	}
 
