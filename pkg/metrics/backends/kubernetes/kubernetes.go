@@ -57,6 +57,10 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodeSe
 		value := b.calculateCPUAllocationPercentage(pods, nodes)
 		return value, nil
 
+	case MetricGPUPercentAllocation.String():
+		value := b.calculateGPUAllocationPercentage(pods, nodes)
+		return value, nil
+
 	case MetricMemoryPercentAllocation.String():
 		value := b.calculateMemoryAllocationPercentage(pods, nodes)
 		return value, nil
@@ -113,6 +117,34 @@ func (b Backend) calculateCPUAllocationPercentage(pods []*corev1.Pod, nodes []*c
 	}
 
 	return (100 * (float64(requestedCPUs) / float64(allocatableCPUs)))
+}
+
+func (b Backend) calculateGPUAllocationPercentage(pods []*corev1.Pod, nodes []*corev1.Node) float64 {
+	log.Debugf("Performing gpu allocation calculation of %d pods across %d nodes", len(pods), len(nodes))
+
+	var allocatableGPUs, requestedGPUs int64
+
+	// calculate sum of allocatable GPUs across nodes
+	for _, node := range nodes {
+		for _, vendor := range GPUVendors() {
+			if val, ok := node.Status.Allocatable[corev1.ResourceName(vendor)]; ok {
+				allocatableGPUs += val.MilliValue()
+			}
+		}
+	}
+
+	// calculate sum of requested GPUs across pods
+	for _, pod := range pods {
+		for _, container := range pod.Spec.Containers {
+			for _, vendor := range GPUVendors() {
+				if val, ok := container.Resources.Requests[corev1.ResourceName(vendor)]; ok {
+					requestedGPUs += val.MilliValue()
+				}
+			}
+		}
+	}
+
+	return (100 * (float64(requestedGPUs) / float64(allocatableGPUs)))
 }
 
 func (b Backend) calculateMemoryAllocationPercentage(pods []*corev1.Pod, nodes []*corev1.Node) float64 {

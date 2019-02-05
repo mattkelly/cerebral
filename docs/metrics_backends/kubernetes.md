@@ -18,6 +18,7 @@ spec:
 
 ## Available Metrics
 * [CPU Percent Allocation](#cpu-percent-allocation)
+* [GPU Percent Allocation](#gpu-percent-allocation)
 * [Memory Percent Allocation](#memory-percent-allocation)
 * [Ephemeral Storage Percent Allocation](#ephemeral-storage-percent-allocation)
 * [Pod Percent Allocation](#pod-percent-allocation)
@@ -41,6 +42,44 @@ metadata:
   name: cpu-example-policy
 spec:
   metric: cpu_percent_allocation
+  metricConfiguration: {}
+  metricsBackend: kubernetes
+  pollInterval: 15
+  samplePeriod: 300
+  scalingPolicy:
+    scaleDown:
+      adjustmentType: absolute
+      adjustmentValue: 1
+      comparisonOperator: <=
+      threshold: 30
+    scaleUp:
+      adjustmentType: absolute
+      adjustmentValue: 2
+      comparisonOperator: '>='
+      threshold: 70
+```
+
+### GPU Percent Allocation
+
+#### Description
+Returns the percent of allocated GPUs across the nodes in the autoscaling group by summing the total GPU requests of the pods, and dividing by the nodes' total allocatable GPUs.
+
+> Note: Both `amd.com/gpu` and `nvidia.com/gpu` are summed together when calculating requested and allocatable GPU totals
+
+#### Metric
+`gpu_percent_allocation`
+
+#### Configuration
+No configuration is available for this metric type.
+
+#### Example
+```yaml
+apiVersion: cerebral.containership.io/v1alpha1
+kind: AutoscalingPolicy
+metadata:
+  name: gpu-example-policy
+spec:
+  metric: gpu_percent_allocation
   metricConfiguration: {}
   metricsBackend: kubernetes
   pollInterval: 15

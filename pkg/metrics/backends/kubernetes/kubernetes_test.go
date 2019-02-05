@@ -1,9 +1,10 @@
 package kubernetes
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -15,10 +16,12 @@ import (
 
 var (
 	nodeAllocatable = corev1.ResourceList{
-		corev1.ResourceCPU:              resource.MustParse("1"),
-		corev1.ResourceMemory:           *resource.NewQuantity(1024, resource.DecimalSI),
-		corev1.ResourceEphemeralStorage: *resource.NewQuantity(4096, resource.DecimalSI),
-		corev1.ResourcePods:             *resource.NewQuantity(2, resource.DecimalSI),
+		corev1.ResourceName("nvidia.com/gpu"): resource.MustParse("1"),
+		corev1.ResourceName("amd.com/gpu"):    resource.MustParse("1"),
+		corev1.ResourceCPU:                    resource.MustParse("1"),
+		corev1.ResourceMemory:                 *resource.NewQuantity(1024, resource.DecimalSI),
+		corev1.ResourceEphemeralStorage:       *resource.NewQuantity(4096, resource.DecimalSI),
+		corev1.ResourcePods:                   *resource.NewQuantity(2, resource.DecimalSI),
 	}
 )
 
@@ -59,9 +62,10 @@ var (
 				{
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:              resource.MustParse("100m"),
-							corev1.ResourceMemory:           *resource.NewQuantity(256, resource.DecimalSI),
-							corev1.ResourceEphemeralStorage: *resource.NewQuantity(1024, resource.DecimalSI),
+							corev1.ResourceCPU:                    resource.MustParse("100m"),
+							corev1.ResourceName("nvidia.com/gpu"): resource.MustParse("3"),
+							corev1.ResourceMemory:                 *resource.NewQuantity(256, resource.DecimalSI),
+							corev1.ResourceEphemeralStorage:       *resource.NewQuantity(1024, resource.DecimalSI),
 						},
 					},
 				},
@@ -80,9 +84,10 @@ var (
 				{
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							corev1.ResourceCPU:              resource.MustParse("200m"),
-							corev1.ResourceMemory:           *resource.NewQuantity(512, resource.DecimalSI),
-							corev1.ResourceEphemeralStorage: *resource.NewQuantity(2048, resource.DecimalSI),
+							corev1.ResourceCPU:                 resource.MustParse("200m"),
+							corev1.ResourceName("amd.com/gpu"): resource.MustParse("3"),
+							corev1.ResourceMemory:              *resource.NewQuantity(512, resource.DecimalSI),
+							corev1.ResourceEphemeralStorage:    *resource.NewQuantity(2048, resource.DecimalSI),
 						},
 					},
 				},
@@ -109,6 +114,9 @@ var backend = Backend{
 func TestGetValue(t *testing.T) {
 	_, err := backend.GetValue("cpu_percent_allocation", nil, nil)
 	assert.NoError(t, err, "successfully get cpu allocation metric")
+
+	_, err = backend.GetValue("gpu_percent_allocation", nil, nil)
+	assert.NoError(t, err, "successfully get gpu allocation metric")
 
 	_, err = backend.GetValue("memory_percent_allocation", nil, nil)
 	assert.NoError(t, err, "successfully get memory allocation metric")
@@ -147,6 +155,24 @@ func TestCalculateCPUAllocationPercentage(t *testing.T) {
 
 	percentage := backend.calculateCPUAllocationPercentage(podList, nodeList)
 	assert.Equal(t, float64(10), percentage, "returns correct allocation percentage")
+}
+
+func TestCalculateGPUAllocationPercentage(t *testing.T) {
+	// 6 total gpus, 3 nvidia requested
+	var podList = []*corev1.Pod{pod0}
+	var nodeList = []*corev1.Node{node0, node1, node2}
+	percentage := backend.calculateGPUAllocationPercentage(podList, nodeList)
+	assert.Equal(t, float64(50), percentage, "returns correct allocation percentage for 1 pod requesting 3 nvidia gpus")
+
+	// 6 total gpus, 3 amd requested
+	podList = []*corev1.Pod{pod1}
+	percentage = backend.calculateGPUAllocationPercentage(podList, nodeList)
+	assert.Equal(t, float64(50), percentage, "returns correct allocation percentage for 1 pod requesting 3 amd gpus")
+
+	// 6 total gpus, 3 amd and 3 nvidia requested
+	podList = []*corev1.Pod{pod0, pod1}
+	percentage = backend.calculateGPUAllocationPercentage(podList, nodeList)
+	assert.Equal(t, float64(100), percentage, "returns correct allocation percentage for 2 pods request 3 amd and 3 nvidia gpus")
 }
 
 func TestCalculateMemoryAllocationPercentage(t *testing.T) {
