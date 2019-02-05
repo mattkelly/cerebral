@@ -15,17 +15,6 @@ import (
 	"github.com/containership/cluster-manager/pkg/log"
 )
 
-const (
-	// ConfigKeyClusterID is the configuration key that is used for getting the cluster ID
-	ConfigKeyClusterID = "clusterID"
-	// ConfigKeyTokenEnvVarName is the configuration key is the name of the env var
-	// that is used to get the DigitalOcean API key
-	ConfigKeyTokenEnvVarName = "tokenEnvVarName"
-	// ConfigKeyNodePoolLabelKey is the configuration key used for getting the
-	// node pool id out of the node selector being used in an ASG
-	ConfigKeyNodePoolLabelKey = "nodePoolLabelKey"
-)
-
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
@@ -37,12 +26,6 @@ type Engine struct {
 	config *cloudConfig
 }
 
-type cloudConfig struct {
-	TokenEnvVarName  string
-	ClusterID        string
-	NodePoolLabelKey string
-}
-
 // NewClient creates a new instance of the DigitalOcean Autoscaling Engine, or an error
 // It is expected that we do not modify the name or configuration here as the caller
 // may not have passed a DeepCopy
@@ -51,12 +34,12 @@ func NewClient(name string, configuration map[string]string) (autoscaling.Engine
 		return nil, errors.New("name must be provided")
 	}
 
-	err := validateConfiguration(configuration)
-	if err != nil {
-		return nil, err
+	config := cloudConfig{}
+	if err := config.defaultAndValidate(configuration); err != nil {
+		return nil, errors.Wrap(err, "validating configuration")
 	}
 
-	token := os.Getenv(configuration["tokenEnvVarName"])
+	token := os.Getenv(config.TokenEnvVarName)
 	oauthClient := oauth2.NewClient(oauth2.NoContext, &tokenSource{
 		AccessToken: token,
 	})
@@ -66,12 +49,8 @@ func NewClient(name string, configuration map[string]string) (autoscaling.Engine
 	}
 
 	e := Engine{
-		name: name,
-		config: &cloudConfig{
-			TokenEnvVarName:  configuration[ConfigKeyTokenEnvVarName],
-			ClusterID:        configuration[ConfigKeyClusterID],
-			NodePoolLabelKey: configuration[ConfigKeyNodePoolLabelKey],
-		},
+		name:   name,
+		config: &config,
 		client: doClient,
 	}
 
@@ -113,18 +92,6 @@ func (e Engine) SetTargetNodeCount(nodeSelectors map[string]string, numNodes int
 	default:
 		return false, errors.Errorf("unknown scale strategy %s", strategy)
 	}
-}
-
-func validateConfiguration(configuration map[string]string) error {
-	if configuration[ConfigKeyClusterID] == "" {
-		return errors.Errorf("%s must be provided", ConfigKeyClusterID)
-	}
-
-	if v, ok := configuration[ConfigKeyTokenEnvVarName]; !ok || os.Getenv(v) == "" {
-		return errors.New("tokenEnvVarName must be provided, and reference a valid env var")
-	}
-
-	return nil
 }
 
 func (e Engine) scaleLabelSpecifiedNodePool(nodeSelectors map[string]string, numNodes int) (bool, error) {

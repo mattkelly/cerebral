@@ -3,7 +3,6 @@ package digitalocean
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -53,25 +52,6 @@ func fakeAutoscalingEngine() *Engine {
 			ClusterID:       "cluster-uuid",
 		},
 		client: client,
-	}
-}
-
-func TestValidateConfiguration(t *testing.T) {
-	configuration := map[string]string{
-		ConfigKeyTokenEnvVarName: "TOKEN_ENV_VAR",
-		ConfigKeyClusterID:       "cluster-uuid",
-	}
-
-	os.Setenv(configuration[ConfigKeyTokenEnvVarName], "token")
-	err := validateConfiguration(configuration)
-	assert.NoError(t, err)
-
-	for key := range configuration {
-		existingValue := configuration[key]
-		delete(configuration, key)
-		err = validateConfiguration(configuration)
-		assert.Error(t, err, fmt.Sprintf("Testing that an error is returned when client configuration is missing %q", key))
-		configuration[key] = existingValue
 	}
 }
 
