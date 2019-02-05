@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	corelistersv1 "k8s.io/client-go/listers/core/v1"
+
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
@@ -21,17 +23,22 @@ func init() {
 
 // Engine is an instance of the DigitalOcean autoscaling engine
 type Engine struct {
-	name   string
-	client *godo.Client
-	config *cloudConfig
+	name       string
+	nodeLister corelistersv1.NodeLister
+	client     *godo.Client
+	config     *cloudConfig
 }
 
 // NewClient creates a new instance of the DigitalOcean Autoscaling Engine, or an error
 // It is expected that we do not modify the name or configuration here as the caller
 // may not have passed a DeepCopy
-func NewClient(name string, configuration map[string]string) (autoscaling.Engine, error) {
+func NewClient(name string, configuration map[string]string, nodeLister corelistersv1.NodeLister) (autoscaling.Engine, error) {
 	if name == "" {
 		return nil, errors.New("name must be provided")
+	}
+
+	if nodeLister == nil {
+		return nil, errors.New("node lister must be provided")
 	}
 
 	config := cloudConfig{}
@@ -49,9 +56,10 @@ func NewClient(name string, configuration map[string]string) (autoscaling.Engine
 	}
 
 	e := Engine{
-		name:   name,
-		config: &config,
-		client: doClient,
+		name:       name,
+		nodeLister: nodeLister,
+		config:     &config,
+		client:     doClient,
 	}
 
 	return e, nil
@@ -75,7 +83,10 @@ func (e Engine) SetTargetNodeCount(nodeSelectors map[string]string, numNodes int
 	case "random", "":
 		var scaled bool
 		var err error
-		if len(nodeSelectors) > 0 {
+
+		// TODO: this should be taken out once DigitalOcean decides on a label as
+		// a user should not have to provide information for the engine
+		if e.config.NodePoolLabelKey != "" {
 			// if a node selector is provided we should only look at that node pool
 			scaled, err = e.scaleLabelSpecifiedNodePool(nodeSelectors, numNodes)
 		} else {
@@ -95,18 +106,23 @@ func (e Engine) SetTargetNodeCount(nodeSelectors map[string]string, numNodes int
 }
 
 func (e Engine) scaleLabelSpecifiedNodePool(nodeSelectors map[string]string, numNodes int) (bool, error) {
-	np, err := e.getNodePoolByLabel(nodeSelectors)
+	id, err := getRandomNodePoolIDToScale(nodeSelectors, e.config.NodePoolLabelKey, numNodes, e.nodeLister)
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "DigitalOcean engine getting node pool ID to scale")
 	}
 
-	if np.Count == numNodes {
+	if id == "" {
 		return false, nil
+	}
+
+	np, _, err := e.client.Kubernetes.GetNodePool(context.Background(), e.config.ClusterID, id)
+	if err != nil {
+		return false, errors.Wrap(err, "getting node pool from DigitalOcean")
 	}
 
 	err = e.scaleNodePoolToCount(np, numNodes)
 	if err != nil {
-		return false, errors.Wrapf(err, "unable to scale node pool with node selectors %s", nodeSelectors)
+		return false, errors.Wrapf(err, "scaling node pool with node selectors %s", nodeSelectors)
 	}
 
 	return true, nil
@@ -212,22 +228,6 @@ func (e Engine) listNodePools() ([]*godo.KubernetesNodePool, error) {
 	}
 
 	return nodepools, nil
-}
-
-// getNodePoolByLabel uses the key assigned to 'NodePoolLabelKey' in the configuration
-// to get the DigitalOcean node pool by ID
-func (e Engine) getNodePoolByLabel(nodeSelectors map[string]string) (*godo.KubernetesNodePool, error) {
-	poolID, ok := nodeSelectors[e.config.NodePoolLabelKey]
-	if !ok {
-		return nil, errors.New("node pool selector does not contain node pool key")
-	}
-
-	nodepool, _, err := e.client.Kubernetes.GetNodePool(context.Background(), e.config.ClusterID, poolID)
-	if err != nil {
-		return nil, err
-	}
-
-	return nodepool, nil
 }
 
 // takes in the number of desired nodes for a node pool. This can either scale up
