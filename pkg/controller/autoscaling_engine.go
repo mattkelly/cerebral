@@ -10,6 +10,7 @@ import (
 
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	corelistersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
@@ -46,6 +47,9 @@ type AutoscalingEngineController struct {
 	autoscalingEngineLister clisters.AutoscalingEngineLister
 	autoscalingEngineSynced cache.InformerSynced
 
+	nodeLister corelistersv1.NodeLister
+	nodeSynced cache.InformerSynced
+
 	workqueue workqueue.RateLimitingInterface
 }
 
@@ -63,6 +67,7 @@ func NewAutoscalingEngine(kubeclientset kubernetes.Interface,
 	}
 
 	autoscalingEngineInformer := cInformerFactory.Cerebral().V1alpha1().AutoscalingEngines()
+	nodeInformer := kubeInformerFactory.Core().V1().Nodes()
 
 	log.Infof("%s: setting up event handlers", autoscalingEngineControllerName)
 
@@ -84,6 +89,9 @@ func NewAutoscalingEngine(kubeclientset kubernetes.Interface,
 	c.autoscalingEngineLister = autoscalingEngineInformer.Lister()
 	c.autoscalingEngineSynced = autoscalingEngineInformer.Informer().HasSynced
 
+	c.nodeLister = nodeInformer.Lister()
+	c.nodeSynced = nodeInformer.Informer().HasSynced
+
 	return c
 }
 
@@ -98,7 +106,7 @@ func (c *AutoscalingEngineController) Run(numWorkers int, stopCh <-chan struct{}
 	// Start the informer factories to begin populating the informer caches
 	log.Infof("Starting %s", autoscalingEngineControllerName)
 
-	if ok := cache.WaitForCacheSync(stopCh, c.autoscalingEngineSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, c.autoscalingEngineSynced, c.nodeSynced); !ok {
 		return errors.Errorf("%s: failed to wait for caches to sync", autoscalingEngineControllerName)
 	}
 
@@ -219,7 +227,7 @@ func (c *AutoscalingEngineController) syncHandler(key string) error {
 
 	log.Infof("Instantiating engine client for AutoscalingEngine %q", name)
 
-	client, err := instantiateEngine(engine)
+	client, err := instantiateEngine(engine, c.nodeLister)
 	if err != nil {
 		return errors.Wrapf(err, "instantiating engine client for AutoscalingEngine %q", name)
 	}
@@ -232,13 +240,13 @@ func (c *AutoscalingEngineController) syncHandler(key string) error {
 
 // instantiateEngine instantiates a new engine for the given AutoscalingEngine.
 // It should be the only function that knows how to instantiate a particular engine type.
-func instantiateEngine(engine *cerebralv1alpha1.AutoscalingEngine) (autoscaling.Engine, error) {
+func instantiateEngine(engine *cerebralv1alpha1.AutoscalingEngine, nodeLister corelistersv1.NodeLister) (autoscaling.Engine, error) {
 	switch engine.Spec.Type {
 	case "containership":
 		// Ignore defensive checks on engine property values since validation happens
 		// upon new client creation. We're explicitly not copying the name and configuration
 		// here since it is assumed that NewClient will not modify the parameters
-		cae, err := containership.NewClient(engine.Name, engine.Spec.Configuration)
+		cae, err := containership.NewClient(engine.Name, engine.Spec.Configuration, nodeLister)
 		if err != nil {
 			return nil, errors.Wrapf(err, "constructing new containership engine %q", engine.Name)
 		}
@@ -246,7 +254,7 @@ func instantiateEngine(engine *cerebralv1alpha1.AutoscalingEngine) (autoscaling.
 		return cae, nil
 
 	case "digitalocean":
-		do, err := digitalocean.NewClient(engine.Name, engine.Spec.Configuration)
+		do, err := digitalocean.NewClient(engine.Name, engine.Spec.Configuration, nodeLister)
 		if err != nil {
 			return nil, errors.Wrapf(err, "constructing new digitalocean engine %q", engine.Name)
 		}

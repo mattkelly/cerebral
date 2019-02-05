@@ -40,15 +40,21 @@ var fakeInvalidASE = &cerebralv1alpha1.AutoscalingEngine{
 	},
 }
 
+var node = corev1.Node{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "node",
+	},
+}
+
 func TestInstantiateEngine(t *testing.T) {
 	os.Setenv(fakeEngineConfiguration["tokenEnvVarName"], "token")
-	nodeLister := kubernetestest.BuildNodeLister([]corev1.Node{})
+	nodeLister := kubernetestest.BuildNodeLister([]corev1.Node{node})
 
-	c, err := instantiateEngine(fakeContainershipASE)
+	c, err := instantiateEngine(fakeContainershipASE, nodeLister)
 	assert.NoError(t, err, "Test that engine instantiation does not error")
 	assert.NotNil(t, c, "Test that engine is instantiated")
 
-	c, err = instantiateEngine(fakeInvalidASE)
+	c, err = instantiateEngine(fakeInvalidASE, nodeLister)
 	assert.Error(t, err, "Test that engine instantiation errors for invalid type")
 
 	os.Unsetenv(fakeEngineConfiguration["tokenEnvVarName"])
