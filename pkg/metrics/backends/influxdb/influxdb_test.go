@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -13,10 +12,9 @@ import (
 	"github.com/influxdata/influxdb/models"
 
 	"github.com/containership/cerebral/pkg/metrics/backends/influxdb/mocks"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes/fake"
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
+
+	"github.com/containership/cerebral/pkg/kubernetestest"
 )
 
 var (
@@ -61,7 +59,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestGetValue(t *testing.T) {
-	nodeLister := buildNodeLister(nil)
+	nodeLister := kubernetestest.BuildNodeLister(nil)
 
 	mockInfluxDB := mocks.Client{}
 	// Return error
@@ -269,25 +267,4 @@ func TestBuildHostList(t *testing.T) {
 
 	hostList = buildHostList(multipleHostnames)
 	assert.Equal(t, "(\"host\"='hostname-0' OR \"host\"='hostname-1' OR \"host\"='hostname-2')", hostList, "multiple hostname hostList")
-}
-
-// Get a node lister. Copies of the nodes are added to the cache; not the nodes themselves.
-func buildNodeLister(nodes []corev1.Node) corelistersv1.NodeLister {
-	// We don't need anything related to the client or informer; we're simply
-	// using this as an easy way to build a cache
-	client := &fake.Clientset{}
-	kubeInformerFactory := informers.NewSharedInformerFactory(client, 30*time.Second)
-	informer := kubeInformerFactory.Core().V1().Nodes()
-
-	for _, node := range nodes {
-		// TODO why is DeepCopy() required here? Without it, each Add() duplicates
-		// the first member added.
-		err := informer.Informer().GetStore().Add(node.DeepCopy())
-		if err != nil {
-			// Should be a programming error
-			panic(err)
-		}
-	}
-
-	return informer.Lister()
 }

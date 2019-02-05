@@ -6,9 +6,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	cerebralv1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
-
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	cerebralv1alpha1 "github.com/containership/cerebral/pkg/apis/cerebral.containership.io/v1alpha1"
+	"github.com/containership/cerebral/pkg/kubernetestest"
 )
 
 var fakeEngineConfiguration = map[string]string{
@@ -40,6 +42,7 @@ var fakeInvalidASE = &cerebralv1alpha1.AutoscalingEngine{
 
 func TestInstantiateEngine(t *testing.T) {
 	os.Setenv(fakeEngineConfiguration["tokenEnvVarName"], "token")
+	nodeLister := kubernetestest.BuildNodeLister([]corev1.Node{})
 
 	c, err := instantiateEngine(fakeContainershipASE)
 	assert.NoError(t, err, "Test that engine instantiation does not error")

@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
 
+	"github.com/containership/cerebral/pkg/kubernetestest"
 	"github.com/containership/cerebral/pkg/metrics/backends/prometheus/mocks"
 )
 
@@ -120,7 +121,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestGetValue(t *testing.T) {
-	nodeLister := buildNodeLister(nil)
+	nodeLister := kubernetestest.BuildNodeLister(nil)
 	podLister := buildPodLister(nil)
 
 	mockProm := mocks.API{}
@@ -269,27 +270,6 @@ func TestBuildPodIPsRegex(t *testing.T) {
 
 	regex = buildPodIPsRegex(multipleIPs)
 	assert.Equal(t, "10.0.0.1:.*|10.0.0.2:.*|10.0.0.3:.*", regex, "multiple IP regex")
-}
-
-// Get a node lister. Copies of the nodes are added to the cache; not the nodes themselves.
-func buildNodeLister(nodes []corev1.Node) corelistersv1.NodeLister {
-	// We don't need anything related to the client or informer; we're simply
-	// using this as an easy way to build a cache
-	client := &fake.Clientset{}
-	kubeInformerFactory := informers.NewSharedInformerFactory(client, 30*time.Second)
-	informer := kubeInformerFactory.Core().V1().Nodes()
-
-	for _, node := range nodes {
-		// TODO why is DeepCopy() required here? Without it, each Add() duplicates
-		// the first member added.
-		err := informer.Informer().GetStore().Add(node.DeepCopy())
-		if err != nil {
-			// Should be a programming error
-			panic(err)
-		}
-	}
-
-	return informer.Lister()
 }
 
 // Get a pod lister. Copies of the pods are added to the cache; not the pods themselves.

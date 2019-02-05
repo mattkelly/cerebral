@@ -12,6 +12,8 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
+
+	"github.com/containership/cerebral/pkg/kubernetestest"
 )
 
 var (
@@ -107,7 +109,7 @@ var (
 )
 
 var backend = Backend{
-	nodeLister: buildNodeLister([]corev1.Node{*node0, *node1, *node2}),
+	nodeLister: kubernetestest.BuildNodeLister([]corev1.Node{*node0, *node1, *node2}),
 	podLister:  buildPodLister([]corev1.Pod{*pod0, *pod1, *pod2}),
 }
 
@@ -197,27 +199,6 @@ func TestCalculatePodAllocationPercentage(t *testing.T) {
 
 	percentage := backend.calculatePodAllocationPercentage(podList, nodeList)
 	assert.Equal(t, float64(50), percentage, "returns correct allocation percentage")
-}
-
-// Get a node lister. Copies of the nodes are added to the cache; not the nodes themselves.
-func buildNodeLister(nodes []corev1.Node) corelistersv1.NodeLister {
-	// We don't need anything related to the client or informer; we're simply
-	// using this as an easy way to build a cache
-	client := &fake.Clientset{}
-	kubeInformerFactory := informers.NewSharedInformerFactory(client, 30*time.Second)
-	informer := kubeInformerFactory.Core().V1().Nodes()
-
-	for _, node := range nodes {
-		// TODO why is DeepCopy() required here? Without it, each Add() duplicates
-		// the first member added.
-		err := informer.Informer().GetStore().Add(node.DeepCopy())
-		if err != nil {
-			// Should be a programming error
-			panic(err)
-		}
-	}
-
-	return informer.Lister()
 }
 
 // Get a pod lister. Copies of the pods are added to the cache; not the pods themselves.
