@@ -80,6 +80,8 @@ func TestNewClient(t *testing.T) {
 		ConfigKeyTokenEnvVarName: "TOKEN_ENV_VAR",
 		ConfigKeyClusterID:       "cluster-uuid",
 	}
+	os.Setenv(configuration[ConfigKeyTokenEnvVarName], "token")
+	defer os.Unsetenv(configuration[ConfigKeyTokenEnvVarName])
 	name := "digitalocean"
 
 	_, err := NewClient("", configuration)
@@ -216,6 +218,25 @@ func TestGetNodepoolCount(t *testing.T) {
 
 	for _, test := range tests {
 		r := getMinNodesNeededInNodePoolCount(test.curr, test.total)
+		assert.Equal(t, test.result, r)
+	}
+}
+
+func TestGetScaleUpCount(t *testing.T) {
+	tests := []struct {
+		desired       int
+		total         int
+		nodePoolTotal int
+		result        int
+	}{
+		{5, 3, 3, 5},
+		{4, 3, 1, 2},
+		{5, 3, 1, 3},
+		{10, 4, 2, 8},
+	}
+
+	for _, test := range tests {
+		r := getScaleUpCount(test.desired, test.total, test.nodePoolTotal)
 		assert.Equal(t, test.result, r)
 	}
 }

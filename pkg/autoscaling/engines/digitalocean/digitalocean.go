@@ -137,7 +137,7 @@ func (e Engine) scaleLabelSpecifiedNodePool(nodeSelectors map[string]string, num
 		return false, nil
 	}
 
-	err = e.scaleNodePoolByCount(np, numNodes)
+	err = e.scaleNodePoolToCount(np, numNodes)
 	if err != nil {
 		return false, errors.Wrapf(err, "unable to scale node pool with node selectors %s", nodeSelectors)
 	}
@@ -163,9 +163,10 @@ func (e Engine) scaleRandomNodePool(numNodes int) (bool, error) {
 
 	switch {
 	case total < numNodes:
-		scaleUpBy := numNodes - total
 		i := rand.Intn(len(nps))
-		err = e.scaleNodePoolByCount(nps[i], scaleUpBy)
+		np := nps[i]
+		scaleUpBy := getScaleUpCount(numNodes, total, np.Count)
+		err = e.scaleNodePoolToCount(np, scaleUpBy)
 
 	case total > numNodes:
 		scaleDownBy := total - numNodes
@@ -180,6 +181,11 @@ func (e Engine) scaleRandomNodePool(numNodes int) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// find the node pools total count for it to scale to the desired scale up count
+func getScaleUpCount(desired, total, nodePoolTotal int) int {
+	return (desired - total) + nodePoolTotal
 }
 
 // we shuffle the node pool array that is passed in order to not only scale
@@ -197,7 +203,7 @@ func (e Engine) randomScaleDown(nodepools []*godo.KubernetesNodePool, numToScale
 		}
 
 		scaleNodePoolTo := getMinNodesNeededInNodePoolCount(np.Count, numToScale)
-		err := e.scaleNodePoolByCount(np, scaleNodePoolTo)
+		err := e.scaleNodePoolToCount(np, scaleNodePoolTo)
 		if err != nil {
 			return err
 		}
@@ -260,13 +266,14 @@ func (e Engine) getNodePoolByLabel(nodeSelectors map[string]string) (*godo.Kuber
 // takes in the number of desired nodes for a node pool. This can either scale up
 // or scale down the node pool and DigitalOcean will choose which node to delete
 // in the scale down case
-func (e Engine) scaleNodePoolByCount(nodePool *godo.KubernetesNodePool, numNodes int) error {
+func (e Engine) scaleNodePoolToCount(nodePool *godo.KubernetesNodePool, numNodes int) error {
 	// create a request to scale node pool
 	// both name and count are required fields
 	req := godo.KubernetesNodePoolUpdateRequest{
 		Name:  nodePool.Name,
 		Count: numNodes,
 	}
+	log.Infof("Requesting DigitalOcean to scale node pool %s to %s", req.Name, req.Count)
 
 	_, _, err := e.client.Kubernetes.UpdateNodePool(context.Background(), e.config.ClusterID, nodePool.ID, &req)
 	if err != nil {
