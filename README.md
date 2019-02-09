@@ -55,6 +55,7 @@ Support for a different `AutoscalingEngine` can be added by implementing the [en
 Because an `AutoscalingGroup` is defined by a label selector, the provider (or some other entity) must be able to label nodes when they are added.
 
 The currently available engines include:
+* [AWS][aws-engine]
 * [Containership][containership-engine]
 * [DigitalOcean][digitalocean-engine]
 
@@ -102,5 +103,6 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md) for more details.
 [influxdb-metrics-backend]: /docs/metrics_backends/influxdb.md
 [kubernetes-metrics-backend]: /docs/metrics_backends/kubernetes.md
 [prometheus-metrics-backend]: /docs/metrics_backends/prometheus.md
+[aws-engine]: /docs/engines/aws.md
 [containership-engine]: /docs/engines/containership.md
 [digitalocean-engine]: /docs/engines/digitalocean.md
