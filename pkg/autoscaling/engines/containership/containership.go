@@ -92,8 +92,9 @@ func (e Engine) SetTargetNodeCount(nodeSelectors map[string]string, numNodes int
 		}
 
 		return e.scaleStrategyRandom(id, numNodes)
+
 	default:
-		return false, errors.Errorf("unable to scale node pool using strategy %s", strategy)
+		return false, errors.Errorf("unknown scale strategy %s", strategy)
 	}
 }
 

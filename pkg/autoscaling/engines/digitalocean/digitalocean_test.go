@@ -124,7 +124,7 @@ func TestSetTargetNodeCountParamErrorCases(t *testing.T) {
 	assert.False(t, result)
 
 	result, err = c.SetTargetNodeCount(emptyLabels, 0, "strategy-dne")
-	assert.Error(t, err, "testing that an error is returned if strategy doesn not exist")
+	assert.Error(t, err, "testing that an error is returned if strategy does not exist")
 	assert.False(t, result)
 }
 

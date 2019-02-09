@@ -48,6 +48,8 @@ var node = corev1.Node{
 
 func TestInstantiateEngine(t *testing.T) {
 	os.Setenv(fakeEngineConfiguration["tokenEnvVarName"], "token")
+	defer os.Unsetenv(fakeEngineConfiguration["tokenEnvVarName"])
+
 	nodeLister := kubernetestest.BuildNodeLister([]corev1.Node{node})
 
 	c, err := instantiateEngine(fakeContainershipASE, nodeLister)
@@ -56,6 +58,4 @@ func TestInstantiateEngine(t *testing.T) {
 
 	c, err = instantiateEngine(fakeInvalidASE, nodeLister)
 	assert.Error(t, err, "Test that engine instantiation errors for invalid type")
-
-	os.Unsetenv(fakeEngineConfiguration["tokenEnvVarName"])
 }

@@ -22,6 +22,7 @@ import (
 	clisters "github.com/containership/cerebral/pkg/client/listers/cerebral.containership.io/v1alpha1"
 
 	"github.com/containership/cerebral/pkg/autoscaling"
+	"github.com/containership/cerebral/pkg/autoscaling/engines/aws"
 	"github.com/containership/cerebral/pkg/autoscaling/engines/containership"
 	"github.com/containership/cerebral/pkg/autoscaling/engines/digitalocean"
 
@@ -47,6 +48,8 @@ type AutoscalingEngineController struct {
 	autoscalingEngineLister clisters.AutoscalingEngineLister
 	autoscalingEngineSynced cache.InformerSynced
 
+	// Some engines require a nodeLister, so just hold it here so it can be
+	// initialized with everything else to avoid weirdness
 	nodeLister corelistersv1.NodeLister
 	nodeSynced cache.InformerSynced
 
@@ -252,6 +255,14 @@ func instantiateEngine(engine *cerebralv1alpha1.AutoscalingEngine, nodeLister co
 		}
 
 		return cae, nil
+
+	case "aws":
+		awsEngine, err := aws.NewClient(engine.Name, nodeLister)
+		if err != nil {
+			return nil, errors.Wrapf(err, "constructing new aws engine %q", engine.Name)
+		}
+
+		return awsEngine, nil
 
 	case "digitalocean":
 		do, err := digitalocean.NewClient(engine.Name, engine.Spec.Configuration, nodeLister)

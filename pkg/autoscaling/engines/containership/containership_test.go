@@ -96,7 +96,7 @@ func TestSetTargetNodeCount(t *testing.T) {
 	assert.False(t, result)
 
 	result, err = c.SetTargetNodeCount(emptyLabels, 0, "")
-	assert.Error(t, err, "testing that an error is returned if there is a request to scale below 0")
+	assert.Error(t, err, "testing that an error is returned if there is a request to scale to 0")
 	assert.False(t, result)
 
 	selector := map[string]string{
