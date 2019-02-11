@@ -1,5 +1,4 @@
 SHELL=/bin/bash
-:wq
 PROJECT_NAME := "cerebral"
 IMAGE_TAG ?= "latest"
 PKG := "github.com/containership/$(PROJECT_NAME)"

@@ -13,42 +13,21 @@ The relationships between them are as follows:
 * `AutoscalingEngine` describes how to communicate with __one__ autoscaling provider.
 * `MetricsBackend` describes how to communicate with  __one__ metrics source.
 
-All CRDs can be deployed using the `deploy` directory:
+All CRDs can be deployed using the `examples/common` directory:
 
 ```
-kubectl apply -f deploy/crd
+kubectl apply -f examples/common
 ```
 
 ### AutoscalingGroup
 
 An `AutoscalingGroup` is defined as a group of nodes that exists within the Kubernetes cluster, and has the ability to be scaled independently of other nodes in the cluster.
 
-The manifest for an AutoscalingGroup is available [here][autoscaling-group-crd-manifest].
+The manifest for an AutoscalingGroup is available within the [prerequisite manifests][examples-prereqs].
 
 #### Example
 
-```YAML
-apiVersion: cerebral.containership.io/v1alpha1
-kind: AutoscalingGroup
-metadata:
-  name: worker-pool-0
-spec:
-  nodeSelector:
-    containership.io/node-pool-id: b0964974-ad0c-11e8-a608-026257f282ce
-  policies:
-    - prometheus-cpu-percentage
-    - scale-on-cpu-allocation
-  engine: containership
-  cooldownPeriod: 600
-  suspended: true
-  minNodes: 2
-  maxNodes: 10
-  scalingStrategy:
-    scaleUp: random
-    scaleDown: random
-status:
-  lastUpdateTime: 2018-09-25T10:53:00Z
-```
+Examples are available in the [examples directory][examples-autoscaling-groups].
 
 #### Fields
 
@@ -74,35 +53,12 @@ Otherwise, a single node would belong to multiple `AutoscalingGroups`.
 
 An `AutoscalingPolicy` is defined as a list of thresholds, responsible for triggering one or more `AutoscalingGroups` to scale either up or down based on the returned metric value from the `MetricsBackend`.
 
-The manifest for an AutoscalingPolicy is available [here][autoscaling-policy-crd-manifest].
+The manifest for an AutoscalingPolicy is available within the [prerequisite manifests][examples-prereqs].
 
 #### Example
 
-Below is an example `AutoscalingPolicy` Custom Resource:
-```YAML
-apiVersion: cerebral.containership.io/v1alpha1
-kind: AutoscalingPolicy
-metadata:
-  name: prometheus-cpu-percentage
-spec:
-  metricsBackend: prometheus
-  metric: cpu
-  metricConfiguration:
-    aggregation: avg
-  policy:
-    scaleUp:
-      threshold: 0.8
-      comparisonOperator: ">="
-      adjustmentType: percent
-      adjustmentValue: 100
-    scaleDown:
-      threshold: 0.35
-      comparisonOperator: "<"
-      adjustmentType: absolute
-      adjustmentValue: 1
-  pollInterval: 15
-  samplePeriod: 600
-```
+Examples are available in the [examples directory][examples-autoscaling-policies].
+See also [documentation for specific metrics backends][docs-metrics-backends].
 
 #### Fields
 
@@ -128,10 +84,6 @@ spec:
 
 The `AutoscalingPolicy` can be thought of as a mathematical comparison defined as: `returnedMetricValue` `spec.policy{scaleUp,scaleDown}.comparisonOperator` `spec.policy{scaleUp,scaleDown}.threshold`.
 
-For example, the CR above would be evaluated as follows:
-* Scale Up: `returnedCPUValue >= 0.80`
-* Scale Down: `returnedCPUValue < 0.35`
-
 If the comparison evaluates to `true`, the `AutoscalingPolicy` is said to "alert".
 A scale request is generated only if the threshold is breached for at least the `samplePeriod`.
 
@@ -143,23 +95,11 @@ A scale request is generated only if the threshold is breached for at least the 
 
 An `AutoscalingEngine` is defined as the system responsible for adding or removing capacity to the Kubernetes cluster.
 
-The manifest for an AutoscalingEngine is available [here][autoscaling-engine-crd-manifest].
+The manifest for an AutoscalingEngine is available within the [prerequisite manifests][examples-prereqs].
 
 #### Example
 
-```YAML
-apiVersion: cerebral.containership.io/v1alpha1
-kind: AutoscalingEngine
-metadata:
-  name: containership
-spec:
-  type: containership
-  configuration:
-    address: https://provision.containership.io
-    clusterID: 00000000-5914-4e36-85bb-f62cb6a86a01
-    organizationID: 00000000-9bf2-43ba-bc60-f3711e4e4d8a
-    tokenEnvVarName: CONTAINERSHIP_CLOUD_CLUSTER_API_KEY
-```
+Example AutoscalingEngine manifests are available [in the examples directory][examples-autoscaling-engines].
 
 #### Fields
 
@@ -173,20 +113,11 @@ spec:
 A `MetricsBackend` is defined as a source from which the cluster autoscaler will poll for metrics, returning a raw metric value to compare against the thresholds defined in the `AutoscalingPolicies` in order to make scaling decisions.
 See the relevant `AutoscalingPolicy` fields [here](#autoscaling-policy-fields).
 
-The manifest for a MetricsBackend is available [here][metrics-backend-crd-manifest].
+The manifest for a MetricsBackend is available within the [prerequisite manifests][examples-prereqs].
 
 #### Example
 
-```YAML
-apiVersion: cerebral.containership.io/v1alpha1
-kind: MetricsBackend
-metadata:
-  name: prometheus
-spec:
-  type: prometheus
-  configuration:
-    address: http://prometheus-operated.containership-core.svc.cluster.local:9090
-```
+Example MetricsBackend manifests are available [in the examples directory][examples-metrics-backends].
 
 #### Fields
 
@@ -201,7 +132,7 @@ The `MetricsBackend` is required to expose a list of well-defined metrics which 
 Each metric may expose a different set of configurable parameters.
 For Prometheus this looks like:
 
-###### CPU
+###### `cpu_percent_utilization`
 
 Monitor the average CPU across an `AutoscalingGroup`.
 Configuration is as follows:
@@ -214,7 +145,7 @@ Configuration is as follows:
 
 Note that [#48](https://github.com/containership/cerebral/issues/48) should remove the need to have a `cpuMetricName` configuration key.
 
-###### Memory
+###### `memory_percent_utilization`
 
 Monitor the average memory across an `AutoscalingGroup`.
 Configuration is as follows:
@@ -224,7 +155,7 @@ Configuration is as follows:
 | `aggregation` | false | string | Aggregation function to apply the metric (default `avg`) |
 | `range` | false | string | Historical range over which to aggregate the metric (default `1m`) |
 
-###### Custom
+###### `custom`
 
 Monitor a custom metric across an `AutoscalingGroup`.
 Configuration is as follows:
@@ -233,7 +164,9 @@ Configuration is as follows:
 |-----|----------|------|-------------|
 | `queryTemplate` | true | string | String template used to build the query |
 
-[autoscaling-group-crd-manifest]: ../deploy/crd/autoscaling-group.yaml
-[autoscaling-policy-crd-manifest]: ../deploy/crd/autoscaling-policy.yaml
-[autoscaling-engine-crd-manifest]: ../deploy/crd/autoscaling-engine.yaml
-[metrics-backend-crd-manifest]: ../deploy/crd/metrics-backend.yaml
+[examples-prereqs]: ../examples/common/00-prereqs.yaml
+[examples-autoscaling-engines]: ../examples/engines
+[examples-autoscaling-groups]: ../examples/autoscaling_groups
+[examples-autoscaling-policies]: ../examples/autoscaling_policies
+[examples-metrics-backends]: ../examples/metrics_backends
+[docs-metrics-backends]: ../docs/metrics_backends
