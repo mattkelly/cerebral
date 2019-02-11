@@ -1,0 +1,24 @@
+---
+apiVersion: cerebral.containership.io/v1alpha1
+kind: AutoscalingPolicy
+metadata:
+  name: prometheus-cpu-percentage-custom
+spec:
+  metric: custom
+  metricConfiguration:
+    query: 100 - ( avg( irate(node_cpu{mode='idle',instance=~'{{.PodIPsRegex}}'}[1m]))
+      * 100)
+  metricsBackend: prometheus
+  pollInterval: 15
+  samplePeriod: 300
+  scalingPolicy:
+    scaleDown:
+      adjustmentType: absolute
+      adjustmentValue: 1
+      comparisonOperator: <=
+      threshold: 30
+    scaleUp:
+      adjustmentType: absolute
+      adjustmentValue: 2
+      comparisonOperator: '>='
+      threshold: 70

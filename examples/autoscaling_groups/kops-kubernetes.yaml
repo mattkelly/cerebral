@@ -1,0 +1,18 @@
+---
+apiVersion: cerebral.containership.io/v1alpha1
+kind: AutoscalingGroup
+metadata:
+  name: kops-workers-asg
+spec:
+  nodeSelector:
+    "node-pool": "workers"
+  policies:
+  - kubernetes-cpu
+  engine: aws
+  suspended: false
+  cooldownPeriod: 60
+  minNodes: 1
+  maxNodes: 5
+  scalingStrategy:
+    scaleUp: random
+    scaleDown: random

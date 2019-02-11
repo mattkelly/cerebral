@@ -8,6 +8,7 @@ metadata:
     containership.io/app: cerebral
     containership.io/managed: "true"
     app.kubernetes.io/name: cerebral
+    app.kubernetes.io/part-of: cerebral
 spec:
   replicas: 1
   selector:
@@ -15,12 +16,14 @@ spec:
       containership.io/app: cerebral
       containership.io/managed: "true"
       app.kubernetes.io/name: cerebral
+      app.kubernetes.io/part-of: cerebral
   template:
     metadata:
       labels:
         containership.io/app: cerebral
         containership.io/managed: "true"
         app.kubernetes.io/name: cerebral
+        app.kubernetes.io/part-of: cerebral
     spec:
       serviceAccountName: containership-admin
       tolerations:
@@ -30,7 +33,7 @@ spec:
         node-role.kubernetes.io/master: ""
       containers:
       - name: cerebral
-        image: containership/cerebral
+        image: containership/cerebral:latest
         imagePullPolicy: Always
         env:
         - name: LOG_LEVEL
@@ -38,12 +41,5 @@ spec:
         - name: CONTAINERSHIP_CLOUD_CLUSTER_API_KEY
           valueFrom:
             secretKeyRef:
-              name: containership-env-secret
+              name: cerebral-containership-engine
               key: CONTAINERSHIP_CLOUD_CLUSTER_API_KEY
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: containership-env-secret
-stringData:
-  CONTAINERSHIP_CLOUD_CLUSTER_API_KEY: eyJ...

@@ -1,0 +1,41 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: kube-system
+  name: cerebral
+  labels:
+    app.kubernetes.io/name: cerebral
+    app.kubernetes.io/part-of: cerebral
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cerebral
+      app.kubernetes.io/part-of: cerebral
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cerebral
+        app.kubernetes.io/part-of: cerebral
+    spec:
+      serviceAccountName: cerebral
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      containers:
+      - name: cerebral
+        image: containership/cerebral:latest
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: cerebral-aws-engine
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: cerebral-aws-engine
+              key: AWS_SECRET_ACCESS_KEY

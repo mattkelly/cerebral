@@ -1,0 +1,18 @@
+---
+apiVersion: cerebral.containership.io/v1alpha1
+kind: AutoscalingGroup
+metadata:
+  name: worker-pool-0
+spec:
+  nodeSelector:
+    containership.io/node-pool-id: b0964974-ad0c-11e8-a608-026257f282ce
+  policies:
+    - prometheus-cpu-percentage
+  engine: containership
+  cooldownPeriod: 600
+  suspended: false
+  minNodes: 2
+  maxNodes: 10
+  scalingStrategy:
+    scaleUp: random
+    scaleDown: random

@@ -1,0 +1,36 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: kube-system
+  name: cerebral
+  labels:
+    app.kubernetes.io/name: cerebral
+    app.kubernetes.io/part-of: cerebral
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cerebral
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cerebral
+        app.kubernetes.io/part-of: cerebral
+    spec:
+      serviceAccountName: cerebral
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      nodeSelector:
+        node-role.kubernetes.io/master: ""
+      containers:
+      - name: cerebral
+        image: containership/cerebral:latest
+        imagePullPolicy: Always
+        env:
+        - name: DIGITALOCEAN_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: DIGITALOCEAN_TOKEN
+              name: cerebral-digitalocean-engine

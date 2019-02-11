@@ -1,0 +1,7 @@
+---
+apiVersion: cerebral.containership.io/v1alpha1
+kind: MetricsBackend
+metadata:
+  name: kubernetes
+spec:
+  type: kubernetes

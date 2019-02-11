@@ -1,0 +1,9 @@
+---
+apiVersion: cerebral.containership.io/v1alpha1
+kind: MetricsBackend
+metadata:
+  name: influxdb
+spec:
+  type: influxdb
+  configuration:
+    address: http://influxdb.kube-system.svc.cluster.local:8086

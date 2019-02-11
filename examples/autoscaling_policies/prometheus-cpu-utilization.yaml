@@ -1,23 +1,23 @@
+---
 apiVersion: cerebral.containership.io/v1alpha1
 kind: AutoscalingPolicy
 metadata:
-  name: prometheus-cpu-percentage
+  name: prometheus-cpu-percent-utilization
 spec:
   metricsBackend: prometheus
   metric: cpu
   metricConfiguration:
     aggregation: avg
-    cpuMetricName: node_cpu
+  pollInterval: 15
+  samplePeriod: 600
   scalingPolicy:
-    scaleUp:
-      threshold: 0.8
-      comparisonOperator: ">="
-      adjustmentType: percent
-      adjustmentValue: 100
     scaleDown:
-      threshold: 0.35
+      threshold: 35
       comparisonOperator: "<"
       adjustmentType: absolute
       adjustmentValue: 1
-  pollInterval: 15
-  samplePeriod: 600
+    scaleUp:
+      threshold: 80
+      comparisonOperator: ">="
+      adjustmentType: percent
+      adjustmentValue: 100
