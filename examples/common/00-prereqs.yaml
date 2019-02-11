@@ -1,0 +1,250 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: autoscalingengines.cerebral.containership.io
+  labels:
+    app.kubernetes.io/name: cerebral
+    app.kubernetes.io/part-of: cerebral
+spec:
+  group: cerebral.containership.io
+  names:
+    kind: AutoscalingEngine
+    listKind: AutoscalingEngineList
+    singular: autoscalingengine
+    plural: autoscalingengines
+    shortNames:
+    - ase
+  scope: Cluster
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          required:
+            - type
+          properties:
+            type:
+              type: string
+            configuration:
+              type: object
+
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: autoscalinggroups.cerebral.containership.io
+  labels:
+    app.kubernetes.io/name: cerebral
+    app.kubernetes.io/part-of: cerebral
+spec:
+  group: cerebral.containership.io
+  version: v1alpha1
+  names:
+    kind: AutoscalingGroup
+    listKind: AutoscalingGroupList
+    singular: autoscalinggroup
+    plural: autoscalinggroups
+    shortNames:
+    - asg
+  scope: Cluster
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          required:
+          - engine
+          - minNodes
+          - maxNodes
+          - cooldownPeriod
+          properties:
+            nodeSelector:
+              type: object
+            policies:
+              type: array
+              items:
+                type: string
+            engine:
+              type: string
+            cooldownPeriod:
+              type: integer
+            suspended:
+              type: boolean
+            minNodes:
+              type: integer
+              minimum: 0
+            maxNodes:
+              type: integer
+              minimum: 0
+            scalingStrategy:
+              type: object
+              properties:
+                scaleUp:
+                  type: string
+                scaleDown:
+                  type: string
+        status:
+          properties:
+            lastUpdatedAt:
+              type: string
+              format: date-time
+
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: autoscalingpolicies.cerebral.containership.io
+  labels:
+    app.kubernetes.io/name: cerebral
+    app.kubernetes.io/part-of: cerebral
+spec:
+  group: cerebral.containership.io
+  names:
+    kind: AutoscalingPolicy
+    listKind: AutoscalingPolicyList
+    singular: autoscalingpolicy
+    plural: autoscalingpolicies
+    shortNames:
+    - asp
+  scope: Cluster
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          required:
+            - metricsBackend
+            - metric
+            - scalingPolicy
+            - pollInterval
+            - samplePeriod
+          properties:
+            metricsBackend:
+              type: string
+            metric:
+              type: string
+            metricConfiguration:
+              type: object
+            scalingPolicy:
+              type: object
+              properties:
+                scaleUp:
+                  type: object
+                  properties:
+                    threshold:
+                      type: number
+                      format: float
+                    comparisonOperator:
+                      type: string
+                      enum: [ ">", "<", ">=", "<=", "==", "!=" ]
+                    adjustmentType:
+                      type: string
+                      enum: [ "absolute", "percent" ]
+                    adjustmentValue:
+                      type: number
+                      format: float
+                      minimum: 0
+                scaleDown:
+                  type: object
+                  properties:
+                    threshold:
+                      type: number
+                      format: float
+                    comparisonOperator:
+                      type: string
+                      enum: [ ">", "<", ">=", "<=", "==", "!=" ]
+                    adjustmentType:
+                      type: string
+                      enum: [ "absolute", "percent" ]
+                    adjustmentValue:
+                      type: number
+                      format: float
+                      minimum: 0
+            pollInterval:
+              type: integer
+              minimum: 0
+            samplePeriod:
+              type: integer
+              minimum: 0
+
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: metricsbackends.cerebral.containership.io
+  labels:
+    app.kubernetes.io/name: cerebral
+    app.kubernetes.io/part-of: cerebral
+spec:
+  group: cerebral.containership.io
+  names:
+    kind: MetricsBackend
+    listKind: MetricsBackendList
+    singular: metricsbackend
+    plural: metricsbackends
+    shortNames:
+    - mb
+  scope: Cluster
+  version: v1alpha1
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+  validation:
+    openAPIV3Schema:
+      properties:
+        spec:
+          required:
+            - type
+          properties:
+            type:
+              type: string
+            configuration:
+              type: object
+
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cerebral
+  labels:
+    app.kubernetes.io/name: cerebral
+    app.kubernetes.io/part-of: cerebral
+  namespace: kube-system
+
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cerebral
+  labels:
+    app.kubernetes.io/name: cerebral
+    app.kubernetes.io/part-of: cerebral
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: cerebral
+    namespace: kube-system

@@ -1,4 +1,5 @@
 SHELL=/bin/bash
+:wq
 PROJECT_NAME := "cerebral"
 IMAGE_TAG ?= "latest"
 PKG := "github.com/containership/$(PROJECT_NAME)"
@@ -74,9 +75,9 @@ release: ## Build release image for controller (must be on semver tag)
 
 ### Commands for local development
 .PHONY: deploy
-deploy: ## Deploy the controller
-	kubectl apply -f deploy/development/cerebral.yaml
+deploy: ## Deploy Cerebral (without any prereqs)
+	kubectl apply -f examples/engines/containership/10-deployment-cerebral-containership.yaml
 
 .PHONY: undeploy
-undeploy: ## Delete the controller
-	kubectl delete --now -f deploy/development/cerebral.yaml
+undeploy: ## Delete Cerebral
+	kubectl delete -f examples/engines/containership/10-deployment-cerebral-containership.yaml

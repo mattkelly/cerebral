@@ -1,0 +1,11 @@
+---
+apiVersion: cerebral.containership.io/v1alpha1
+kind: AutoscalingEngine
+metadata:
+  name: digitalocean
+spec:
+  type: digitalocean
+  configuration:
+    clusterID: 00000000-0000-0000-0000-000000000000
+    tokenEnvVarName: DIGITALOCEAN_TOKEN
+    nodePoolLabelKey: node-pool-label-key

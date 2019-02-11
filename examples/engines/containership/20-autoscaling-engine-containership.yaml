@@ -1,3 +1,4 @@
+---
 apiVersion: cerebral.containership.io/v1alpha1
 kind: AutoscalingEngine
 metadata:
@@ -5,7 +6,6 @@ metadata:
 spec:
   type: containership
   configuration:
-    address: https://stage-provision.containership.io
+    clusterID: 00000000-0000-0000-0000-000000000000
+    organizationID: 00000000-0000-0000-0000-000000000000
     tokenEnvVarName: CONTAINERSHIP_CLOUD_CLUSTER_API_KEY
-    organizationID: organization-uuid
-    clusterID: cluster-uuid

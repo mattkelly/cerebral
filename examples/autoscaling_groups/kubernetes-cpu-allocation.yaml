@@ -1,0 +1,16 @@
+---
+apiVersion: cerebral.containership.io/v1alpha1
+kind: AutoscalingPolicy
+metadata:
+  name: kubernetes-cpu
+spec:
+  metricsBackend: kubernetes
+  metric: cpu_percent_allocation
+  scalingPolicy:
+    scaleUp:
+      threshold: 70
+      comparisonOperator: ">="
+      adjustmentType: absolute
+      adjustmentValue: 1
+  pollInterval: 15
+  samplePeriod: 600

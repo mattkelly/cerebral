@@ -1,0 +1,23 @@
+---
+apiVersion: cerebral.containership.io/v1alpha1
+kind: AutoscalingPolicy
+metadata:
+  name: influxdb-cpu-perecent-utilization
+spec:
+  metric: cpu_percent_utilization
+  metricConfiguration:
+    database: non-default-example
+  metricsBackend: influxdb
+  pollInterval: 15
+  samplePeriod: 300
+  scalingPolicy:
+    scaleDown:
+      adjustmentType: absolute
+      adjustmentValue: 1
+      comparisonOperator: <=
+      threshold: 30
+    scaleUp:
+      adjustmentType: absolute
+      adjustmentValue: 2
+      comparisonOperator: '>='
+      threshold: 70

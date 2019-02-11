@@ -1,0 +1,7 @@
+---
+apiVersion: cerebral.containership.io/v1alpha1
+kind: AutoscalingEngine
+metadata:
+  name: aws
+spec:
+  type: aws
