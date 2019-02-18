@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ func (c *FakeAutoscalingGroups) List(opts v1.ListOptions) (result *v1alpha1.Auto
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.AutoscalingGroupList{}
+	list := &v1alpha1.AutoscalingGroupList{ListMeta: obj.(*v1alpha1.AutoscalingGroupList).ListMeta}
 	for _, item := range obj.(*v1alpha1.AutoscalingGroupList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
@@ -123,7 +123,7 @@ func (c *FakeAutoscalingGroups) DeleteCollection(options *v1.DeleteOptions, list
 // Patch applies the patch and returns the patched autoscalingGroup.
 func (c *FakeAutoscalingGroups) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.AutoscalingGroup, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(autoscalinggroupsResource, name, data, subresources...), &v1alpha1.AutoscalingGroup{})
+		Invokes(testing.NewRootPatchSubresourceAction(autoscalinggroupsResource, name, pt, data, subresources...), &v1alpha1.AutoscalingGroup{})
 	if obj == nil {
 		return nil, err
 	}
