@@ -43,7 +43,7 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodeSe
 		return 0, errors.Wrap(err, "listing nodes")
 	}
 
-	pods, err := b.getPodsOnNodes(nodes)
+	pods, err := b.getAllocatedPodsOnNodes(nodes)
 	if err != nil {
 		return 0, errors.Wrapf(err, "getting pods on nodes for metric %s", metric)
 	}
@@ -78,8 +78,8 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodeSe
 	}
 }
 
-func (b Backend) getPodsOnNodes(nodes []*corev1.Node) ([]*corev1.Pod, error) {
-	var podsOnNodes []*corev1.Pod
+func (b Backend) getAllocatedPodsOnNodes(nodes []*corev1.Node) ([]*corev1.Pod, error) {
+	var allocatedPodsOnNodes []*corev1.Pod
 
 	// Pass an empty selector to list all pods
 	pods, err := b.podLister.List(labels.NewSelector())
@@ -90,13 +90,16 @@ func (b Backend) getPodsOnNodes(nodes []*corev1.Node) ([]*corev1.Pod, error) {
 	// Only filter to pods running on nodes we care about
 	for _, pod := range pods {
 		for _, node := range nodes {
-			if pod.Spec.NodeName == node.ObjectMeta.Name {
-				podsOnNodes = append(podsOnNodes, pod)
+			// Succeeded and Failed pods do not count towards node allocation
+			if pod.Spec.NodeName == node.ObjectMeta.Name &&
+				pod.Status.Phase != "Succeeded" &&
+				pod.Status.Phase != "Failed" {
+				allocatedPodsOnNodes = append(allocatedPodsOnNodes, pod)
 			}
 		}
 	}
 
-	return podsOnNodes, nil
+	return allocatedPodsOnNodes, nil
 }
 
 func (b Backend) calculateCPUAllocationPercentage(pods []*corev1.Pod, nodes []*corev1.Node) float64 {
