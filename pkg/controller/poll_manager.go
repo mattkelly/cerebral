@@ -69,6 +69,8 @@ func (m pollManager) run() error {
 
 	errCh := make(chan error)
 
+	// this is initialized to nil
+	var result error
 	for {
 		select {
 		case alert := <-alertCh:
@@ -98,17 +100,23 @@ func (m pollManager) run() error {
 
 			err := <-errCh
 			if err != nil {
-				// If a scale request fails, just return an error so the relevant ASG can be re-enqueued
-				return errors.Wrap(err, "requesting scale manager to scale")
+				// If a scale request fails, save the error to the result to return and close the stop channel
+				// The error needs to be saved and returned so the relevant ASG can be re-enqueued
+				result = errors.Wrap(err, "requesting scale manager to scale")
+				close(m.stopCh)
 			}
 
 		case <-m.stopCh:
 			log.Infof("Poll manager for AutoscalingGroup %s shutdown requested", m.asgName)
-			// All pollers share the manager's stop chan so no need to
-			// stop them explicitly
+			// All pollers share the manager's stop chan so no need to stop it
+			// explicitly. However, the alertCh and errCh were created for this
+			// poller so they need to be cleaned up before returning.
 			wg.Wait()
+			close(alertCh)
+			close(errCh)
+
 			log.Infof("Poll manager for AutoscalingGroup %s shutdown success", m.asgName)
-			return nil
+			return result
 		}
 	}
 }
