@@ -59,18 +59,36 @@ func newPollManager(asgName string, asps map[string]*v1alpha1.AutoscalingPolicy,
 }
 
 func (m pollManager) run() error {
-	var wg sync.WaitGroup
+	// This alert channel has N writers - the pollers that are created here.
+	// Since its lifetime is matched to this function, we'll just let it be
+	// garbage collected if this function exits.
 	alertCh := make(chan alert)
 
+	// This error channel is used essentially as a return value for any requests
+	// to the scale manager. Similar to the alert channel, we'll just let it
+	// be garbage collected.
+	errCh := make(chan error)
+
+	// This stop channel tells the pollers to stop if this poll manager is
+	// shutting down for any reason. It must be closed if this function exits.
+	pollerStopCh := make(chan<- struct{})
+
+	var wg sync.WaitGroup
 	for _, p := range m.pollers {
-		wg.Add(1)
 		go p.run(&wg, alertCh, m.stopCh)
 	}
 
-	errCh := make(chan error)
+	// Make sure that when this poll manager dies, all of its pollers are properly
+	// cleaned up.
+	defer func() {
+		close(pollerStopCh)
 
-	// this is initialized to nil
-	var result error
+		// Wait for all pollers to shut down
+		wg.Wait()
+
+		log.Infof("Poll manager for AutoscalingGroup %s shut down success", m.asgName)
+	}()
+
 	for {
 		select {
 		case alert := <-alertCh:
@@ -100,23 +118,12 @@ func (m pollManager) run() error {
 
 			err := <-errCh
 			if err != nil {
-				// If a scale request fails, save the error to the result to return and close the stop channel
-				// The error needs to be saved and returned so the relevant ASG can be re-enqueued
-				result = errors.Wrap(err, "requesting scale manager to scale")
-				close(m.stopCh)
+				return errors.Wrap(err, "requesting scale manager to scale")
 			}
 
 		case <-m.stopCh:
-			log.Infof("Poll manager for AutoscalingGroup %s shutdown requested", m.asgName)
-			// All pollers share the manager's stop chan so no need to stop it
-			// explicitly. However, the alertCh and errCh were created for this
-			// poller so they need to be cleaned up before returning.
-			wg.Wait()
-			close(alertCh)
-			close(errCh)
-
-			log.Infof("Poll manager for AutoscalingGroup %s shutdown success", m.asgName)
-			return result
+			log.Infof("Poll manager for AutoscalingGroup %s shutting down", m.asgName)
+			return nil
 		}
 	}
 }
