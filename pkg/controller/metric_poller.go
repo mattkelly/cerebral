@@ -41,6 +41,14 @@ func newMetricPoller(asp *v1alpha1.AutoscalingPolicy, nodeSelector map[string]st
 	}
 }
 
+func sendAlert(alertCh chan<- alert, msg alert) {
+	select {
+	case alertCh <- msg:
+	default:
+		log.Debugf("Alert channel is full. Discarding alert %v", msg)
+	}
+}
+
 func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-chan struct{}) {
 	defer wg.Done()
 
@@ -63,14 +71,14 @@ func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-cha
 			backend, err := metrics.Registry().Get(backendName)
 			if err != nil {
 				err = errors.Wrapf(err, "metrics backend %q specified by policy %q is unavailable", backendName, policyName)
-				alertCh <- alert{err: err}
+				sendAlert(alertCh, alert{err: err})
 				return
 			}
 
 			val, err := backend.GetValue(metric, metricConfig, p.nodeSelector)
 			if err != nil {
 				err = errors.Wrapf(err, "getting metric %q for policy %q", metric, policyName)
-				alertCh <- alert{err: err}
+				sendAlert(alertCh, alert{err: err})
 				return
 			}
 
@@ -98,12 +106,12 @@ func (p metricPoller) run(wg *sync.WaitGroup, alertCh chan<- alert, stopCh <-cha
 func (p *metricPoller) fireAlert(alertCh chan<- alert, policy *v1alpha1.ScalingPolicyConfiguration, dir scaleDirection) {
 	// Thanks to CRD validation, we can assume that this is valid
 	adjustmentType, _ := adjustmentTypeFromString(policy.AdjustmentType)
-	alertCh <- alert{
+	sendAlert(alertCh, alert{
 		aspName:         p.asp.ObjectMeta.Name,
 		direction:       dir,
 		adjustmentType:  adjustmentType,
 		adjustmentValue: policy.AdjustmentValue,
-	}
+	})
 }
 
 func policyConfigurationShouldFireAlert(policy *v1alpha1.ScalingPolicyConfiguration,

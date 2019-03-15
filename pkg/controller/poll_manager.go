@@ -62,7 +62,7 @@ func (m pollManager) run() error {
 	// This alert channel has N writers - the pollers that are created here.
 	// Since its lifetime is matched to this function, we'll just let it be
 	// garbage collected if this function exits.
-	alertCh := make(chan alert)
+	alertCh := make(chan alert, len(m.pollers))
 
 	// This error channel is used essentially as a return value for any requests
 	// to the scale manager. Similar to the alert channel, we'll just let it
@@ -71,11 +71,12 @@ func (m pollManager) run() error {
 
 	// This stop channel tells the pollers to stop if this poll manager is
 	// shutting down for any reason. It must be closed if this function exits.
-	pollerStopCh := make(chan<- struct{})
+	pollerStopCh := make(chan struct{})
 
 	var wg sync.WaitGroup
 	for _, p := range m.pollers {
-		go p.run(&wg, alertCh, m.stopCh)
+		wg.Add(1)
+		go p.run(&wg, alertCh, pollerStopCh)
 	}
 
 	// Make sure that when this poll manager dies, all of its pollers are properly
