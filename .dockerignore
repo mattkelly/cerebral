@@ -11,7 +11,7 @@
 Dockerfile*
 
 # CI
-.travis.yml
+.circleci
 .codecov.yml
 
 # misc

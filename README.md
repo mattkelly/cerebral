@@ -2,7 +2,7 @@
 
 ---
 
-[![Build Status](https://api.travis-ci.org/containership/cerebral.svg?branch=master)](https://travis-ci.org/containership/cerebral)
+[![CircleCI](https://circleci.com/gh/containership/cerebral.svg?style=svg)](https://circleci.com/gh/containership/cerebral)
 [![Go Report Card](https://goreportcard.com/badge/github.com/containership/cerebral)](https://goreportcard.com/report/github.com/containership/cerebral)
 [![codecov](https://codecov.io/gh/containership/cerebral/branch/master/graph/badge.svg)](https://codecov.io/gh/containership/cerebral)
 
