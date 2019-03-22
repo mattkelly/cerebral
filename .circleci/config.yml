@@ -1,0 +1,97 @@
+version:
+  2
+
+jobs:
+  test:
+    docker:
+      - image: circleci/golang:1.11.4
+    working_directory: /go/src/github.com/containership/cerebral
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: go get -u github.com/golang/dep/cmd/dep
+      - run: go get -u golang.org/x/lint/golint
+      - run:
+          name: Install dependencies
+          command: make dep
+      - run:
+          name: Format check
+          command: make fmt-check
+      - run:
+          name: Lint
+          command: make lint
+      - run:
+          name: Vet
+          command: make vet
+      - run:
+          name: Test
+          command: |
+            make coverage && bash <(curl -s https://codecov.io/bash)
+
+  build:
+    docker:
+      - image: circleci/golang:1.11.4
+    working_directory: /go/src/github.com/containership/cerebral
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Default build
+          command: make
+
+  build-and-publish:
+    docker:
+      - image: circleci/golang:1.11.4
+    working_directory: /go/src/github.com/containership/cerebral
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: |
+            export IMAGE_NAME=$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
+            export IMAGE_TAG=`if [ -z $CIRCLE_TAG ]; then echo latest; else echo $CIRCLE_TAG; fi`
+            echo "Building Docker image $IMAGE_NAME:$IMAGE_TAG"
+            make
+            echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+            echo "Pushing Docker image $IMAGE_NAME:$IMAGE_TAG"
+            docker push $IMAGE_NAME:$IMAGE_TAG
+            docker logout
+
+workflows:
+  version: 2
+
+  commit:
+    jobs:
+      - test
+
+      - build:
+          filters:
+            branches:
+              ignore: master # master runs the publish job instead
+
+      - build-and-publish:
+          context: containershipbot
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - master
+
+  release:
+    jobs:
+      - test:
+          filters:  # filters are required to match build-and-publish job since it requires this one
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+
+      - build-and-publish:
+          context: containershipbot
+          requires:
+            - test
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
