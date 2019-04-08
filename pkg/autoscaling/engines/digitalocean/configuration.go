@@ -8,9 +8,8 @@ import (
 )
 
 type cloudConfig struct {
-	TokenEnvVarName  string
-	ClusterID        string
-	NodePoolLabelKey string
+	TokenEnvVarName string
+	ClusterID       string
 }
 
 func (c *cloudConfig) defaultAndValidate(configuration map[string]string) error {

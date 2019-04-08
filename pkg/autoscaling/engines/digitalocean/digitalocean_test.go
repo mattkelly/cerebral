@@ -52,7 +52,7 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "do-0",
 			Labels: map[string]string{
-				"digitalocean.com/node-pool-id": "node-pool-1-uuid",
+				nodePoolIDLabelKey: "node-pool-1-uuid",
 			},
 		},
 	}
@@ -60,7 +60,7 @@ var (
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "do-1",
 			Labels: map[string]string{
-				"digitalocean.com/node-pool-id": "node-pool-1-uuid",
+				nodePoolIDLabelKey: "node-pool-1-uuid",
 			},
 		},
 	}
@@ -128,37 +128,6 @@ func TestSetTargetNodeCountParamErrorCases(t *testing.T) {
 	assert.False(t, result)
 }
 
-func TestClusterAsNodePoolSetTargetNodeCount(t *testing.T) {
-	nodeLister := kubernetestest.BuildNodeLister([]corev1.Node{node0, node1})
-	c, kmocks := fakeAutoscalingEngine(nodeLister)
-
-	// create DigitalOcean node pools for API responses
-	nodepool := newFakeNodePool(nodePoolID, nodePoolName, 1)
-	nodepools := []*godo.KubernetesNodePool{nodepool}
-
-	emptyLabels := map[string]string{}
-
-	kmocks.On("ListNodePools", mock.Anything, mock.Anything, mock.Anything).
-		Return(nodepools, newFakeOKResponse(), nil).Twice()
-	kmocks.On("UpdateNodePool", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(nodepool, newFakeOKResponse(), nil)
-
-	result, err := c.SetTargetNodeCount(emptyLabels, 2, "")
-	assert.NoError(t, err, "test that node pool is scaled")
-	assert.True(t, result)
-
-	result, err = c.SetTargetNodeCount(emptyLabels, 1, "")
-	assert.NoError(t, err)
-	assert.False(t, result, "test no scale action if cluster node number is desired node number")
-
-	kmocks.On("ListNodePools", mock.Anything, mock.Anything, mock.Anything).
-		Return(nil, newFakeOKResponse(), errors.New("unable to list node pool")).Once()
-
-	result, err = c.SetTargetNodeCount(emptyLabels, 1, "")
-	assert.Error(t, err)
-	assert.False(t, result, "test no scale action if error getting node pools")
-}
-
 func TestSetTargetNodeCount(t *testing.T) {
 	nodeLister := kubernetestest.BuildNodeLister([]corev1.Node{node0})
 	c, kmocks := fakeAutoscalingEngine(nodeLister)
@@ -166,11 +135,9 @@ func TestSetTargetNodeCount(t *testing.T) {
 	nodepool := newFakeNodePool(nodePoolID, nodePoolName, 1)
 	nodepools := []*godo.KubernetesNodePool{nodepool}
 
-	const key = "digitalocean.com/node-pool-id"
 	label := map[string]string{
-		key: nodePoolID,
+		nodePoolIDLabelKey: nodePoolID,
 	}
-	c.config.NodePoolLabelKey = key
 
 	kmocks.On("GetNodePool", mock.Anything, mock.Anything, mock.Anything).
 		Return(nodepool, newFakeOKResponse(), nil).Twice()
@@ -190,83 +157,8 @@ func TestSetTargetNodeCount(t *testing.T) {
 	kmocks.On("GetNodePool", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, nil, errors.New("node pool not found")).Once()
 
-	label[key] = "bad-id"
+	label[nodePoolIDLabelKey] = "id-does-not-match-any-nodes"
 	result, err = c.SetTargetNodeCount(label, 5, "")
 	assert.NoError(t, err)
 	assert.False(t, result)
-}
-
-func TestMultipleNodePoolsSetTargetNodeCount(t *testing.T) {
-	nodeLister := kubernetestest.BuildNodeLister([]corev1.Node{})
-	c, kmocks := fakeAutoscalingEngine(nodeLister)
-
-	nodepool := newFakeNodePool(nodePoolID, nodePoolName, 1)
-	nodepools := []*godo.KubernetesNodePool{nodepool}
-
-	emptyLabels := make(map[string]string, 0)
-
-	// This check should be done last, the node pool that is added will persist in
-	// subsequent tests
-	nodepool2 := newFakeNodePool("node-pool-second-id", "second-node-pool-name", 3)
-	nodepool3 := newFakeNodePool("node-pool-third-id", "third-node-pool-name", 4)
-	nodepools = append(nodepools, nodepool2, nodepool3)
-
-	kmocks.On("ListNodePools", mock.Anything, mock.Anything, mock.Anything).
-		Return(nodepools, newFakeOKResponse(), nil)
-
-	kmocks.On("UpdateNodePool", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(nodepool, newFakeOKResponse(), nil).Times(5)
-
-	result, err := c.SetTargetNodeCount(emptyLabels, 7, "")
-	assert.NoError(t, err, "testing scaling down a single node pool")
-	assert.True(t, result)
-
-	result, err = c.SetTargetNodeCount(emptyLabels, 3, "")
-	assert.NoError(t, err, "testing scaling down multiple node pools")
-	assert.True(t, result)
-
-	result, err = c.SetTargetNodeCount(emptyLabels, 2, "")
-	assert.Error(t, err, "testing that node pools scale down does not scale a node pool below 0")
-	assert.False(t, result)
-
-	kmocks.On("UpdateNodePool", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		Return(nil, newFakeOKResponse(), errors.New("update failed")).Twice()
-	result, err = c.SetTargetNodeCount(emptyLabels, 3, "")
-	assert.Error(t, err, "test that if node pool update fails error is returned")
-	assert.False(t, result)
-}
-
-func TestGetNodepoolCount(t *testing.T) {
-	tests := []struct {
-		curr   int
-		total  int
-		result int
-	}{
-		{5, 3, 2},
-		{4, 8, 1},
-	}
-
-	for _, test := range tests {
-		r := getMinNodesNeededInNodePoolCount(test.curr, test.total)
-		assert.Equal(t, test.result, r)
-	}
-}
-
-func TestGetScaleUpCount(t *testing.T) {
-	tests := []struct {
-		desired       int
-		total         int
-		nodePoolTotal int
-		result        int
-	}{
-		{5, 3, 3, 5},
-		{4, 3, 1, 2},
-		{5, 3, 1, 3},
-		{10, 4, 2, 8},
-	}
-
-	for _, test := range tests {
-		r := getScaleUpCount(test.desired, test.total, test.nodePoolTotal)
-		assert.Equal(t, test.result, r)
-	}
 }

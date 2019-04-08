@@ -21,6 +21,10 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+const (
+	nodePoolIDLabelKey = "doks.digitalocean.com/node-pool-id"
+)
+
 // Engine is an instance of the DigitalOcean autoscaling engine
 type Engine struct {
 	name       string
@@ -81,19 +85,8 @@ func (e Engine) SetTargetNodeCount(nodeSelectors map[string]string, numNodes int
 	switch strategy {
 	// random is the default for this engine
 	case "random", "":
-		var scaled bool
-		var err error
 
-		// TODO: this should be taken out once DigitalOcean decides on a label as
-		// a user should not have to provide information for the engine
-		if e.config.NodePoolLabelKey != "" {
-			// if a node selector is provided we should only look at that node pool
-			scaled, err = e.scaleLabelSpecifiedNodePool(nodeSelectors, numNodes)
-		} else {
-			// try scaling any node pool in the DigitalOcean cluster
-			scaled, err = e.scaleRandomNodePool(numNodes)
-		}
-
+		scaled, err := e.scaleLabelSpecifiedNodePool(nodeSelectors, numNodes)
 		if err != nil {
 			return false, errors.Wrap(err, "unable to scale DigitalOcean cluster")
 		}
@@ -106,7 +99,7 @@ func (e Engine) SetTargetNodeCount(nodeSelectors map[string]string, numNodes int
 }
 
 func (e Engine) scaleLabelSpecifiedNodePool(nodeSelectors map[string]string, numNodes int) (bool, error) {
-	id, err := getRandomNodePoolIDToScale(nodeSelectors, e.config.NodePoolLabelKey, numNodes, e.nodeLister)
+	id, err := getRandomNodePoolIDToScale(nodeSelectors, nodePoolIDLabelKey, numNodes, e.nodeLister)
 	if err != nil {
 		return false, errors.Wrap(err, "DigitalOcean engine getting node pool ID to scale")
 	}
@@ -128,108 +121,6 @@ func (e Engine) scaleLabelSpecifiedNodePool(nodeSelectors map[string]string, num
 	return true, nil
 }
 
-// DigitalOcean node pools currently do not have the labels needed to identify which
-// group a node belongs to, making scaling a particular group impossible.
-// Scale Up: get a random node pool and scale it to the set count
-// Scale Down: we need to split the number of nodes that needs to be scaled down
-// across node pools if the scale down action will make a node pool less than 1 node
-func (e Engine) scaleRandomNodePool(numNodes int) (bool, error) {
-	nps, err := e.listNodePools()
-	if err != nil {
-		return false, errors.Wrap(err, "unable to list node pools")
-	}
-
-	var total int
-	for _, np := range nps {
-		total += np.Count
-	}
-
-	switch {
-	case total < numNodes:
-		i := rand.Intn(len(nps))
-		np := nps[i]
-		scaleUpBy := getScaleUpCount(numNodes, total, np.Count)
-		err = e.scaleNodePoolToCount(np, scaleUpBy)
-
-	case total > numNodes:
-		scaleDownBy := total - numNodes
-		err = e.randomScaleDown(nps, scaleDownBy)
-
-	default:
-		return false, nil
-	}
-
-	if err != nil {
-		return false, errors.Wrap(err, "unable to scale random node pool")
-	}
-
-	return true, nil
-}
-
-// find the node pools total count for it to scale to the desired scale up count
-func getScaleUpCount(desired, total, nodePoolTotal int) int {
-	return (desired - total) + nodePoolTotal
-}
-
-// we shuffle the node pool array that is passed in order to not only scale
-// down the first node pool for every scale down request
-func (e Engine) randomScaleDown(nodepools []*godo.KubernetesNodePool, numToScale int) error {
-	nodepools = shuffle(nodepools)
-	for _, np := range nodepools {
-		if numToScale == 0 {
-			break
-		}
-
-		// limitations in DigitalOcean prevent scaling a node pool to less than 1
-		if np.Count == 1 {
-			continue
-		}
-
-		scaleNodePoolTo := getMinNodesNeededInNodePoolCount(np.Count, numToScale)
-		err := e.scaleNodePoolToCount(np, scaleNodePoolTo)
-		if err != nil {
-			return err
-		}
-
-		numToScale = numToScale - (np.Count - scaleNodePoolTo)
-	}
-
-	// this case can happen if the total number of desired nodes is less than the
-	// number of node pools in the cluster since there has to be 1 node per node pool
-	if numToScale != 0 {
-		return errors.New("unable to scale to desired node count")
-	}
-
-	return nil
-}
-
-func shuffle(nodepools []*godo.KubernetesNodePool) []*godo.KubernetesNodePool {
-	ret := make([]*godo.KubernetesNodePool, len(nodepools))
-	perm := rand.Perm(len(nodepools))
-	for i, randIndex := range perm {
-		ret[i] = nodepools[randIndex]
-	}
-	return ret
-}
-
-func getMinNodesNeededInNodePoolCount(curr, total int) int {
-	if curr > total {
-		return curr - total
-	}
-
-	return 1
-}
-
-func (e Engine) listNodePools() ([]*godo.KubernetesNodePool, error) {
-	opts := godo.ListOptions{}
-	nodepools, _, err := e.client.Kubernetes.ListNodePools(context.Background(), e.config.ClusterID, &opts)
-	if err != nil {
-		return nil, err
-	}
-
-	return nodepools, nil
-}
-
 // takes in the number of desired nodes for a node pool. This can either scale up
 // or scale down the node pool and DigitalOcean will choose which node to delete
 // in the scale down case
@@ -240,7 +131,7 @@ func (e Engine) scaleNodePoolToCount(nodePool *godo.KubernetesNodePool, numNodes
 		Name:  nodePool.Name,
 		Count: numNodes,
 	}
-	log.Infof("Requesting DigitalOcean to scale node pool %s to %s", req.Name, req.Count)
+	log.Infof("Requesting DigitalOcean to scale node pool %s to %d", req.Name, req.Count)
 
 	_, _, err := e.client.Kubernetes.UpdateNodePool(context.Background(), e.config.ClusterID, nodePool.ID, &req)
 	if err != nil {
