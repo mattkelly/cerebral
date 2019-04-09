@@ -6,6 +6,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/containership/cerebral)](https://goreportcard.com/report/github.com/containership/cerebral)
 [![codecov](https://codecov.io/gh/containership/cerebral/branch/master/graph/badge.svg)](https://codecov.io/gh/containership/cerebral)
 
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](code-of-conduct.md)
+
 Cerebral is a Kubernetes cluster autoscaler with pluggable metrics backends and scaling engines.
 
 # Overview
