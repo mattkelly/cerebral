@@ -162,3 +162,33 @@ func TestSetTargetNodeCount(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, result)
 }
+
+func TestSetTargetNodeCountDoResponseError(t *testing.T) {
+	nodeLister := kubernetestest.BuildNodeLister([]corev1.Node{node0})
+	c, kmocks := fakeAutoscalingEngine(nodeLister)
+
+	nodepool := newFakeNodePool(nodePoolID, nodePoolName, 1)
+	nodepools := []*godo.KubernetesNodePool{nodepool}
+
+	label := map[string]string{
+		nodePoolIDLabelKey: nodePoolID,
+	}
+
+	kmocks.On("GetNodePool", mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, nil, errors.New("get node pool transient error")).Once()
+
+	result, err := c.SetTargetNodeCount(label, 2, "")
+	assert.Error(t, err)
+	assert.False(t, result)
+
+	kmocks.On("GetNodePool", mock.Anything, mock.Anything, mock.Anything).
+		Return(nodepool, newFakeOKResponse(), nil).Twice()
+	kmocks.On("ListNodePools", mock.Anything, mock.Anything, mock.Anything).
+		Return(nodepools, newFakeOKResponse(), nil)
+	kmocks.On("UpdateNodePool", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, nil, errors.New("transient update error"))
+
+	result, err = c.SetTargetNodeCount(label, 2, "")
+	assert.Error(t, err)
+	assert.False(t, result)
+}
