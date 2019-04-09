@@ -15,13 +15,10 @@ You can find the cluster ID in the URL when looking at the cluster through the D
 Finally, you can acquire an API token through the "Account" page on the DigitalOcean dashboard.
 **Note:** The token that is used will need to have both read and write privileges to be able to scale the node pool.
 
-There is also the option of adding `nodePoolLabelKey` which will allow for multiple Autoscaling Groups, one for each node pool, once DigitalOcean labels each node in a node pool with its node pool information.
-
 | Field | Required | Type | Description |
 | ----- | -------- | ---- | ----------- |
 | `tokenEnvVarName` | true | string | The environment variable name to use to get the DigitalOcean API token. |
 | `clusterID` | true | string | The ID of the cluster that should be monitored and scaled. |
-| `nodePoolLabelKey` | false | string | The label key that is used for labeling nodes as part of a node pool. |
 
 ## Example
 ```yaml
@@ -34,5 +31,4 @@ spec:
   configuration:
     tokenEnvVarName:      DO_TOKEN
     clusterID:            5253100f-dc07-462e-9b93-2fc2c0d5431f
-    nodePoolLabelKey:     digitalocean.com/node-pool-id
 ```
