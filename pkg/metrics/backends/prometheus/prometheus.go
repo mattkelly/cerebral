@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"text/template"
 	"time"
-
+	"strings"
 	"github.com/pkg/errors"
 
 	prometheusclient "github.com/prometheus/client_golang/api"
@@ -14,8 +14,6 @@ import (
 	"github.com/prometheus/common/model"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	corelistersv1 "k8s.io/client-go/listers/core/v1"
 
 	"github.com/containership/cerebral/pkg/metrics"
@@ -125,27 +123,19 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodeSe
 	}
 }
 
+
 func (b Backend) getNodeExporterPodIPsOnNodes(nodes []*corev1.Node) ([]string, error) {
 	var podIPs []string
-
-	// TODO we should rethink how we do all of the below, potentially using b.Targets()
-	// to help. See https://github.com/containership/cerebral/issues/15.
-	selector := labels.NewSelector()
-	l, _ := labels.NewRequirement("prom-exporter", selection.Equals, []string{"node"})
-	selector = selector.Add(*l)
-
-	// TODO if we could use a FieldSelector including Pod.Spec.NodeName then we
-	// could avoid the gross O(n^2) below. Is there a way to do that without
-	// having to query the API directly?
-	pods, err := b.podLister.List(selector)
-	if err != nil {
-		return nil, errors.Wrap(err, "listing node exporter pods")
-	}
-	// Only filter in prom-exporter pods that belong to a node we care about
-	for _, pod := range pods {
-		for _, node := range nodes {
-			if pod.Spec.NodeName == node.ObjectMeta.Name {
-				podIPs = append(podIPs, pod.Status.PodIP)
+	//Filter only prom-exporter job, furhter filter down by node ips
+	targets, _ := b.prometheus.Targets(context.TODO())
+	for _, active := range targets.Active {
+		jobName := string(active.DiscoveredLabels["job"])
+		split := strings.Split(jobName,"/")
+		if(split[1] == "node-export-monitor"){
+			for _, node := range nodes{
+				if(string(active.DiscoveredLabels["__meta_kubernetes_pod_node_name"]) == node.ObjectMeta.Name){
+					podIPs = append(podIPs,string(active.DiscoveredLabels["__meta_kubernetes_pod_ip"]))
+				}
 			}
 		}
 	}

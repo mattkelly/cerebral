@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/prometheus/common/model"
+	prometheus "github.com/prometheus/client_golang/api/prometheus/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,6 +52,7 @@ var (
 
 	podIP0 = "192.168.0.1"
 	podIP1 = "192.168.1.1"
+
 )
 
 var (
@@ -101,6 +103,24 @@ var (
 			PodIP: podIP1,
 		},
 	}
+
+	dlNode0 = model.LabelSet{
+		"__meta_kubernetes_pod_node_name": model.LabelValue(promPodOnNode0.Spec.NodeName),
+		"__meta_kubernetes_pod_ip": model.LabelValue(promPodOnNode0.Status.PodIP),
+		"job": "random/node-export-monitor/random",
+	}
+
+	dlNode1 = model.LabelSet{
+		"__meta_kubernetes_pod_node_name": model.LabelValue(promPodOnNode1.Spec.NodeName),
+		"__meta_kubernetes_pod_ip": model.LabelValue(promPodOnNode1.Status.PodIP),
+		"job": "random/node-export-monitor/random",
+	}
+
+	dlOtherNode = model.LabelSet{
+		"__meta_kubernetes_pod_node_name": "other-0",
+		"__meta_kubernetes_pod_ip": "1.1.1.192",
+		"job": "random/cadvisor/random",
+	}
 )
 
 func TestNewClient(t *testing.T) {
@@ -128,6 +148,22 @@ func TestGetValue(t *testing.T) {
 	// Return error
 	mockProm.On("Query", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, fmt.Errorf("some prometheus error")).Once()
+
+	mockProm.On("Targets",mock.Anything).Return(
+	prometheus.TargetsResult{
+		Active: []prometheus.ActiveTarget {
+			{
+				DiscoveredLabels: dlNode0,
+			},
+			{
+				DiscoveredLabels: dlNode1,
+			},
+			{
+				DiscoveredLabels: dlOtherNode,
+			},
+		},
+	},nil)
+
 
 	backend := Backend{
 		prometheus: &mockProm,
@@ -190,8 +226,24 @@ func TestGetValue(t *testing.T) {
 func TestGetNodeExporterPodIPsOnNodes(t *testing.T) {
 	emptyPodLister := buildPodLister(nil)
 
+	mockProm := mocks.API{}
+	mockProm.On("Targets",mock.Anything).Return(
+		prometheus.TargetsResult{
+			Active: []prometheus.ActiveTarget {
+				{
+					DiscoveredLabels: dlNode0,
+				},
+				{
+					DiscoveredLabels: dlNode1,
+				},
+				{
+					DiscoveredLabels: dlOtherNode,
+				},
+			},
+		},nil)
+
 	backend := Backend{
-		prometheus: &mocks.API{},
+		prometheus: &mockProm,
 		podLister:  emptyPodLister,
 	}
 
@@ -199,14 +251,6 @@ func TestGetNodeExporterPodIPsOnNodes(t *testing.T) {
 	ips, err := backend.getNodeExporterPodIPsOnNodes(nil)
 	assert.NoError(t, err)
 	assert.Empty(t, ips, "no nodes with empty pod cache --> no IPs")
-
-	// Fill the cache with valid pods, query using valid nodes
-	fullPodLister := buildPodLister([]corev1.Pod{
-		promPodOnNode0,
-		promPodOnNode1,
-	})
-
-	backend.podLister = fullPodLister
 
 	nodes := []*corev1.Node{&promNode0, &promNode1}
 
