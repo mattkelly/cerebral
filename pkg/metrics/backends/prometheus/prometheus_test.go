@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/prometheus/common/model"
 	prometheus "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +52,6 @@ var (
 
 	podIP0 = "192.168.0.1"
 	podIP1 = "192.168.1.1"
-
 )
 
 var (
@@ -106,20 +105,20 @@ var (
 
 	dlNode0 = model.LabelSet{
 		"__meta_kubernetes_pod_node_name": model.LabelValue(promPodOnNode0.Spec.NodeName),
-		"__meta_kubernetes_pod_ip": model.LabelValue(promPodOnNode0.Status.PodIP),
-		"job": "random/node-export-monitor/random",
+		"__meta_kubernetes_pod_ip":        model.LabelValue(promPodOnNode0.Status.PodIP),
+		"job":                             "random/node-export-monitor/random",
 	}
 
 	dlNode1 = model.LabelSet{
 		"__meta_kubernetes_pod_node_name": model.LabelValue(promPodOnNode1.Spec.NodeName),
-		"__meta_kubernetes_pod_ip": model.LabelValue(promPodOnNode1.Status.PodIP),
-		"job": "random/node-export-monitor/random",
+		"__meta_kubernetes_pod_ip":        model.LabelValue(promPodOnNode1.Status.PodIP),
+		"job":                             "random/node-export-monitor/random",
 	}
 
 	dlOtherNode = model.LabelSet{
 		"__meta_kubernetes_pod_node_name": "other-0",
-		"__meta_kubernetes_pod_ip": "1.1.1.192",
-		"job": "random/cadvisor/random",
+		"__meta_kubernetes_pod_ip":        "1.1.1.192",
+		"job":                             "random/cadvisor/random",
 	}
 )
 
@@ -149,21 +148,20 @@ func TestGetValue(t *testing.T) {
 	mockProm.On("Query", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, fmt.Errorf("some prometheus error")).Once()
 
-	mockProm.On("Targets",mock.Anything).Return(
-	prometheus.TargetsResult{
-		Active: []prometheus.ActiveTarget {
-			{
-				DiscoveredLabels: dlNode0,
+	mockProm.On("Targets", mock.Anything).Return(
+		prometheus.TargetsResult{
+			Active: []prometheus.ActiveTarget{
+				{
+					DiscoveredLabels: dlNode0,
+				},
+				{
+					DiscoveredLabels: dlNode1,
+				},
+				{
+					DiscoveredLabels: dlOtherNode,
+				},
 			},
-			{
-				DiscoveredLabels: dlNode1,
-			},
-			{
-				DiscoveredLabels: dlOtherNode,
-			},
-		},
-	},nil)
-
+		}, nil)
 
 	backend := Backend{
 		prometheus: &mockProm,
@@ -227,9 +225,9 @@ func TestGetNodeExporterPodIPsOnNodes(t *testing.T) {
 	emptyPodLister := buildPodLister(nil)
 
 	mockProm := mocks.API{}
-	mockProm.On("Targets",mock.Anything).Return(
+	mockProm.On("Targets", mock.Anything).Return(
 		prometheus.TargetsResult{
-			Active: []prometheus.ActiveTarget {
+			Active: []prometheus.ActiveTarget{
 				{
 					DiscoveredLabels: dlNode0,
 				},
@@ -240,7 +238,7 @@ func TestGetNodeExporterPodIPsOnNodes(t *testing.T) {
 					DiscoveredLabels: dlOtherNode,
 				},
 			},
-		},nil)
+		}, nil)
 
 	backend := Backend{
 		prometheus: &mockProm,

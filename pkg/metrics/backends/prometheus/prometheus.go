@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
+	"strings"
 	"text/template"
 	"time"
-	"strings"
-	"github.com/pkg/errors"
 
 	prometheusclient "github.com/prometheus/client_golang/api"
 	prometheus "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -123,18 +123,17 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodeSe
 	}
 }
 
-
 func (b Backend) getNodeExporterPodIPsOnNodes(nodes []*corev1.Node) ([]string, error) {
 	var podIPs []string
 	//Filter only prom-exporter job, furhter filter down by node ips
 	targets, _ := b.prometheus.Targets(context.TODO())
 	for _, active := range targets.Active {
 		jobName := string(active.DiscoveredLabels["job"])
-		split := strings.Split(jobName,"/")
-		if(split[1] == "node-export-monitor"){
-			for _, node := range nodes{
-				if(string(active.DiscoveredLabels["__meta_kubernetes_pod_node_name"]) == node.ObjectMeta.Name){
-					podIPs = append(podIPs,string(active.DiscoveredLabels["__meta_kubernetes_pod_ip"]))
+		split := strings.Split(jobName, "/")
+		if split[1] == "node-export-monitor" {
+			for _, node := range nodes {
+				if string(active.DiscoveredLabels["__meta_kubernetes_pod_node_name"]) == node.ObjectMeta.Name {
+					podIPs = append(podIPs, string(active.DiscoveredLabels["__meta_kubernetes_pod_ip"]))
 				}
 			}
 		}
