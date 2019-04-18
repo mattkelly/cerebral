@@ -2,7 +2,7 @@
 apiVersion: cerebral.containership.io/v1alpha1
 kind: AutoscalingPolicy
 metadata:
-  name: influxdb-cpu-perecent-utilization
+  name: influxdb-cpu-percent-utilization
 spec:
   metric: cpu_percent_utilization
   metricConfiguration:
