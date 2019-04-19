@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/pkg/errors"
 
 	prometheusclient "github.com/prometheus/client_golang/api"
 	prometheus "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -28,7 +29,6 @@ type Backend struct {
 	prometheus prometheus.API
 
 	nodeLister corelistersv1.NodeLister
-	podLister  corelistersv1.PodLister
 }
 
 // Average CPU usage across the given nodes for the given range
@@ -38,6 +38,9 @@ const cpuQueryTemplateString = `
 		irate({{.NodeCPUMetricName}}{mode='idle',instance=~'{{.PodIPsRegex}}'}[{{.Range}}])
 	) * 100
 )`
+
+
+
 
 var cpuQueryTemplate = template.Must(template.New("cpu").Parse(cpuQueryTemplateString))
 
@@ -51,7 +54,7 @@ const memoryQueryTemplateString = `
 var memoryQueryTemplate = template.Must(template.New("mem").Parse(memoryQueryTemplateString))
 
 // NewClient returns a new client for talking to a Prometheus Backend, or an error
-func NewClient(address string, nodeLister corelistersv1.NodeLister, podLister corelistersv1.PodLister) (metrics.Backend, error) {
+func NewClient(address string, nodeLister corelistersv1.NodeLister) (metrics.Backend, error) {
 	if address == "" {
 		// Under the hood, prometheusclient uses url.Parse() which allows
 		// relative URLs, etc. Empty would be allowed, so disallow it
@@ -61,10 +64,6 @@ func NewClient(address string, nodeLister corelistersv1.NodeLister, podLister co
 
 	if nodeLister == nil {
 		return nil, errors.New("node lister must be provided")
-	}
-
-	if podLister == nil {
-		return nil, errors.New("pod lister must be provided")
 	}
 
 	client, err := prometheusclient.NewClient(prometheusclient.Config{
@@ -79,7 +78,6 @@ func NewClient(address string, nodeLister corelistersv1.NodeLister, podLister co
 	return Backend{
 		prometheus: api,
 		nodeLister: nodeLister,
-		podLister:  podLister,
 	}, nil
 }
 
@@ -125,7 +123,8 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodeSe
 
 func (b Backend) getNodeExporterPodIPsOnNodes(nodes []*corev1.Node) ([]string, error) {
 	var podIPs []string
-	//Filter only prom-exporter job, furhter filter down by node ips
+
+	// Filter only prom-exporter job, and further filter down by node ips
 	targets, _ := b.prometheus.Targets(context.TODO())
 	for _, active := range targets.Active {
 		jobName := string(active.DiscoveredLabels["job"])

@@ -263,7 +263,7 @@ func (c *MetricsBackendController) instantiateBackend(backend *cerebralv1alpha1.
 			return nil, errors.New("Prometheus backend requires address in configuration")
 		}
 
-		return prometheus.NewClient(address, c.nodeLister, c.podLister)
+		return prometheus.NewClient(address, c.nodeLister)
 
 	case "influxdb":
 		var address string
