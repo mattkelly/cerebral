@@ -31,6 +31,10 @@ type Backend struct {
 	nodeLister corelistersv1.NodeLister
 }
 
+const (
+	prometheusRequestTimeout = 10 * time.Second
+)
+
 // Average CPU usage across the given nodes for the given range
 const cpuQueryTemplateString = `
 100 - (
@@ -121,8 +125,11 @@ func (b Backend) GetValue(metric string, configuration map[string]string, nodeSe
 func (b Backend) getNodeExporterPodIPsOnNodes(nodes []*corev1.Node) ([]string, error) {
 	var podIPs []string
 
-	// Filter only prom-exporter job, and further filter down by node ips
-	targets, _ := b.prometheus.Targets(context.TODO())
+	ctx, cancel := context.WithTimeout(context.Background(), prometheusRequestTimeout)
+	defer cancel()
+
+	// Filter only prom-exporter job, and further filter down by node IPs
+	targets, _ := b.prometheus.Targets(ctx)
 	for _, active := range targets.Active {
 		jobName := string(active.DiscoveredLabels["job"])
 		split := strings.Split(jobName, "/")
@@ -145,7 +152,7 @@ func (b Backend) getNodeExporterPodIPsOnNodes(nodes []*corev1.Node) ([]string, e
 func (b Backend) performQuery(query string) (float64, error) {
 	log.Debugf("Performing prometheus query: %s", query)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), prometheusRequestTimeout)
 	defer cancel()
 
 	val, err := b.prometheus.Query(ctx, query, time.Time{})
