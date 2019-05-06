@@ -39,9 +39,6 @@ const cpuQueryTemplateString = `
 	) * 100
 )`
 
-
-
-
 var cpuQueryTemplate = template.Must(template.New("cpu").Parse(cpuQueryTemplateString))
 
 // Average memory usage across the given nodes for the given range
