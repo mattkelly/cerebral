@@ -125,23 +125,19 @@ var (
 func TestNewClient(t *testing.T) {
 	// Should never fail with any valid URL because it's only constructing an
 	// http.Client under the hood
-	client, err := NewClient(validURL, corelistersv1.NewNodeLister(nil), corelistersv1.NewPodLister(nil))
+	client, err := NewClient(validURL, corelistersv1.NewNodeLister(nil))
 	assert.NotNil(t, client)
 	assert.NoError(t, err, "any valid URL is ok")
 
-	client, err = NewClient("", corelistersv1.NewNodeLister(nil), corelistersv1.NewPodLister(nil))
+	client, err = NewClient("", corelistersv1.NewNodeLister(nil))
 	assert.Error(t, err, "error on empty URL")
 
-	_, err = NewClient(validURL, nil, corelistersv1.NewPodLister(nil))
+	_, err = NewClient(validURL, nil)
 	assert.Error(t, err, "error on nil NodeLister")
-
-	_, err = NewClient(validURL, corelistersv1.NewNodeLister(nil), nil)
-	assert.Error(t, err, "error on nil PodLister")
 }
 
 func TestGetValue(t *testing.T) {
 	nodeLister := kubernetestest.BuildNodeLister(nil)
-	podLister := buildPodLister(nil)
 
 	mockProm := mocks.API{}
 	// Return error
@@ -166,7 +162,6 @@ func TestGetValue(t *testing.T) {
 	backend := Backend{
 		prometheus: &mockProm,
 		nodeLister: nodeLister,
-		podLister:  podLister,
 	}
 
 	_, err := backend.GetValue("cpu_percent_utilization", goodConfiguration, nil)
@@ -222,8 +217,6 @@ func TestGetValue(t *testing.T) {
 }
 
 func TestGetNodeExporterPodIPsOnNodes(t *testing.T) {
-	emptyPodLister := buildPodLister(nil)
-
 	mockProm := mocks.API{}
 	mockProm.On("Targets", mock.Anything).Return(
 		prometheus.TargetsResult{
@@ -242,7 +235,6 @@ func TestGetNodeExporterPodIPsOnNodes(t *testing.T) {
 
 	backend := Backend{
 		prometheus: &mockProm,
-		podLister:  emptyPodLister,
 	}
 
 	// Empty cache but no nodes requested
