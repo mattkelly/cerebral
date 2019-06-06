@@ -28,8 +28,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	CerebralV1alpha1() cerebralv1alpha1.CerebralV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Cerebral() cerebralv1alpha1.CerebralV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -41,12 +39,6 @@ type Clientset struct {
 
 // CerebralV1alpha1 retrieves the CerebralV1alpha1Client
 func (c *Clientset) CerebralV1alpha1() cerebralv1alpha1.CerebralV1alpha1Interface {
-	return c.cerebralV1alpha1
-}
-
-// Deprecated: Cerebral retrieves the default version of CerebralClient.
-// Please explicitly pick a version.
-func (c *Clientset) Cerebral() cerebralv1alpha1.CerebralV1alpha1Interface {
 	return c.cerebralV1alpha1
 }
 

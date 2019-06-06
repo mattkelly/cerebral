@@ -75,8 +75,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) CerebralV1alpha1() cerebralv1alpha1.CerebralV1alpha1Interface {
 	return &fakecerebralv1alpha1.FakeCerebralV1alpha1{Fake: &c.Fake}
 }
-
-// Cerebral retrieves the CerebralV1alpha1Client
-func (c *Clientset) Cerebral() cerebralv1alpha1.CerebralV1alpha1Interface {
-	return &fakecerebralv1alpha1.FakeCerebralV1alpha1{Fake: &c.Fake}
-}
