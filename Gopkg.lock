@@ -87,8 +87,7 @@
     "cloud/rest",
   ]
   pruneopts = "UT"
-  revision = "41d1ae4854418a3696f13432c83edde424366317"
-  source = "github.com/nicktate/csctl"
+  revision = "1323959c504330f833fcbb51be0ac4b0c063e0cf"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"

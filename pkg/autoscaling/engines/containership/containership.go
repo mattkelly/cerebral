@@ -103,7 +103,7 @@ func (e Engine) SetTargetNodeCount(nodeSelectors map[string]string, numNodes int
 // the desired count
 func (e Engine) scaleStrategyRandom(nodePoolID string, numNodes int) (bool, error) {
 	target := int32(numNodes)
-	req := types.ScaleNodePoolRequest{
+	req := types.NodePoolScaleRequest{
 		Count: &target,
 	}
 

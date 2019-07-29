@@ -55,7 +55,7 @@ func (in *AutoscalingEngine) DeepCopyObject() runtime.Object {
 func (in *AutoscalingEngineList) DeepCopyInto(out *AutoscalingEngineList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]AutoscalingEngine, len(*in))
@@ -139,7 +139,7 @@ func (in *AutoscalingGroup) DeepCopyObject() runtime.Object {
 func (in *AutoscalingGroupList) DeepCopyInto(out *AutoscalingGroupList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]AutoscalingGroup, len(*in))
@@ -249,7 +249,7 @@ func (in *AutoscalingPolicy) DeepCopyObject() runtime.Object {
 func (in *AutoscalingPolicyList) DeepCopyInto(out *AutoscalingPolicyList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]AutoscalingPolicy, len(*in))
@@ -333,7 +333,7 @@ func (in *MetricsBackend) DeepCopyObject() runtime.Object {
 func (in *MetricsBackendList) DeepCopyInto(out *MetricsBackendList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]MetricsBackend, len(*in))
