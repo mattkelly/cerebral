@@ -74,18 +74,21 @@
   version = "v5.0.1"
 
 [[projects]]
-  digest = "1:25f61d103f64b5d813765d7e7e61878ec42ab2591777bc33492cbcb27dc2f508"
+  digest = "1:bd9e9ce8ccadb26f49e3ddf1e0a775c50aac9a7b54f91167ac13dffe7e9aa611"
   name = "github.com/containership/csctl"
   packages = [
     "cloud",
     "cloud/api",
     "cloud/api/types",
+    "cloud/auth",
+    "cloud/auth/types",
     "cloud/provision",
     "cloud/provision/types",
     "cloud/rest",
   ]
   pruneopts = "UT"
-  revision = "f38128550600f3d718d0f57631b5743abdd0cfb9"
+  revision = "41d1ae4854418a3696f13432c83edde424366317"
+  source = "github.com/nicktate/csctl"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
@@ -206,14 +209,6 @@
   version = "v0.18.0"
 
 [[projects]]
-  digest = "1:41206f4d0410803e64cfb203f665330c3183988408cb532b56305a816a87bd99"
-  name = "github.com/go-resty/resty"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "fa5875c0caa5c260ab78acec5a244215a730247f"
-  version = "v1.12.0"
-
-[[projects]]
   digest = "1:4d02824a56d268f74a6b6fdd944b20b58a77c3d70e81008b3ee0c4f1a6777340"
   name = "github.com/gogo/protobuf"
   packages = [
@@ -245,6 +240,20 @@
   pruneopts = "UT"
   revision = "c823c79ea1570fb5ff454033735a8e68575d1d0f"
   version = "v1.3.0"
+
+[[projects]]
+  digest = "1:bf40199583e5143d1472fc34d10d6f4b69d97572142acf343b3e43136da40823"
+  name = "github.com/google/go-cmp"
+  packages = [
+    "cmp",
+    "cmp/internal/diff",
+    "cmp/internal/flags",
+    "cmp/internal/function",
+    "cmp/internal/value",
+  ]
+  pruneopts = "UT"
+  revision = "6f77996f0c42f7b84e5a2b252227263f93432e9b"
+  version = "v0.3.0"
 
 [[projects]]
   digest = "1:a63cff6b5d8b95638bfe300385d93b2a6d9d687734b863da8e09dc834510a690"
@@ -591,6 +600,14 @@
   version = "v0.9.1"
 
 [[projects]]
+  digest = "1:41206f4d0410803e64cfb203f665330c3183988408cb532b56305a816a87bd99"
+  name = "gopkg.in/resty.v1"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "fa5875c0caa5c260ab78acec5a244215a730247f"
+  version = "v1.12.0"
+
+[[projects]]
   digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
@@ -599,7 +616,7 @@
   version = "v2.2.2"
 
 [[projects]]
-  digest = "1:86ad5797d1189de342ed6988fbb76b92dc0429a4d677ad69888d6137efa5712e"
+  digest = "1:b2e959d92a38ffc25142da8e8bf4fefe0e5e687ecb871fabaac58db0497304df"
   name = "k8s.io/api"
   packages = [
     "admissionregistration/v1beta1",
@@ -640,11 +657,11 @@
     "storage/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "a675ac48af67cf21d815b5f8df288462096eb9c9"
-  version = "kubernetes-1.14.2"
+  revision = "b59d8169aab578b59c8d331a0e8cf6c56fae5fa0"
+  version = "kubernetes-1.15.1"
 
 [[projects]]
-  digest = "1:d0bf8fddebd2921f5eae2b4a15ac648e5e1f1897d1e683aeb97533f2d240cb3b"
+  digest = "1:19f25947275fdb24f57a6b9884dc8520d8b5051b0f2894dcd775c5555e22d85f"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -691,11 +708,11 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "UT"
-  revision = "6a84e37a896db9780c75367af8d2ed2bb944022e"
-  version = "kubernetes-1.14.2"
+  revision = "1799e75a07195de9460b8ef7300883499f12127b"
+  version = "kubernetes-1.15.1"
 
 [[projects]]
-  digest = "1:2dff05dd4eaf4bfc45cf40e9a9d34adf6e147cd27a03f5201e16c134bce08ad0"
+  digest = "1:fbdd2e4201a6c81eaa47e5d1643e0a0c5786db110a975d98f38ae886010830f4"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -887,11 +904,11 @@
     "util/workqueue",
   ]
   pruneopts = "UT"
-  revision = "ae8359b20417914b73a4b514b7a3d642597700bb"
-  version = "kubernetes-1.14.2"
+  revision = "8e956561bbf57253b1d19c449d0f24e8cb18d467"
+  version = "kubernetes-1.15.1"
 
 [[projects]]
-  digest = "1:742ce70d2c6de0f02b5331a25d4d549f55de6b214af22044455fd6e6b451cad9"
+  digest = "1:559e29865df733d697a8b075b9904a870400a28ddaccccc2afa35d72da6435f6"
   name = "k8s.io/code-generator"
   packages = [
     "cmd/client-gen",
@@ -919,8 +936,8 @@
     "pkg/util",
   ]
   pruneopts = ""
-  revision = "50b561225d70b3eb79a1faafd3dfe7b1a62cbe73"
-  version = "kubernetes-1.14.2"
+  revision = "18da4a14b22b17d2fa761e50037fabfbacec225b"
+  version = "kubernetes-1.15.1"
 
 [[projects]]
   branch = "master"

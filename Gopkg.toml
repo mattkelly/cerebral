@@ -29,19 +29,20 @@ required = [
 
 [[constraint]]
   name = "k8s.io/api"
-  version = "kubernetes-1.14.2"
+  version = "kubernetes-1.15.1"
 
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.14.2"
+  version = "kubernetes-1.15.1"
 
 [[constraint]]
   name = "github.com/containership/csctl"
-  revision = "f38128550600f3d718d0f57631b5743abdd0cfb9"
+  revision = "41d1ae4854418a3696f13432c83edde424366317"
+  source = "github.com/nicktate/csctl"
 
 [[constraint]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.14.2"
+  version = "kubernetes-1.15.1"
 
 [[constraint]]
   name = "github.com/containership/cluster-manager"
@@ -57,7 +58,7 @@ required = [
 
 [[constraint]]
   name = "k8s.io/code-generator"
-  version = "kubernetes-1.14.2"
+  version = "kubernetes-1.15.1"
 
 [[constraint]]
   name = "k8s.io/klog"
