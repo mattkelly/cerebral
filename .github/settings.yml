@@ -1,0 +1,6 @@
+_extends: containership/probot-root:.github/_settings.yml
+
+repository:
+    name: cerebral
+    description: Kubernetes cluster autoscaler with pluggable metrics backends and scaling engines
+    private: false
